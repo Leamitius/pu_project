@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Maps GeoJSON Example</title>
+    <style>
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        let map;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 4,
+                center: { lat: 39.742043, lng: -104.991531 },
+            });
+
+            // Load the GeoJSON file from the same directory
+
+            // Optional: style the features
+            map.data.setStyle(function(feature) {
+                console.log(feature);
+                return {
+                    fillColor: 'red',
+                    strokeWeight: 1
+                };
+            });
+        }
+    </script>
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&v=weekly&callback=initMap&libraries=marker"></script>
+</body>
+</html>

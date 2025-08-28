@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoBoundaries Interactive Map (Local Data)</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply the Inter font from Tailwind's config */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Set map to fill the viewport */
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+
+<body class="bg-gray-100 flex flex-col items-center justify-center p-4">
+    <!-- Map container -->
+    <div id="map" class="w-full h-screen"></div>
+
+    <!-- Dropdown and title container -->
+    <div class="absolute top-4 left-4 z-[1000] p-4 bg-white bg-opacity-90 rounded-xl shadow-lg flex flex-col md:flex-row items-center gap-4">
+        <h1 class="text-xl font-bold text-gray-800 whitespace-nowrap">Select a Country:</h1>
+        <select id="country-select" class="px-4 py-2 text-gray-700 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ease-in-out">
+            <!-- Options will be dynamically populated here by JavaScript -->
+        </select>
+    </div>
+
+    <!-- Message box for errors or loading state -->
+    <div id="message-box" class="absolute bottom-4 left-4 z-[1000] px-6 py-3 bg-gray-800 bg-opacity-80 text-white rounded-lg shadow-xl text-center hidden">
+        <p id="message-text" class="font-medium"></p>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        // --- Global Variables and Setup ---
+        // Initialize the map centered on Brazil with a zoom level
+        const map = L.map('map').setView([-14.235, -51.9253], 4);
+        let geoJsonLayer = null; // Variable to store the current GeoJSON layer
+
+        // DOM Elements
+        const countrySelect = document.getElementById('country-select');
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        // Hardcoded list of country codes to use instead of fetching from GitHub.
+        // You can add all the codes you have locally to this array.
+        const localCountryCodes = ['BRA', 'USA', 'CAN', 'MEX', 'AUS', 'DEU', 'FRA', 'JPN', 'IND'];
+
+        // Add OpenStreetMap tile layer to the map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+
+        // --- Helper Functions ---
+        /**
+         * Displays a message in the message box.
+         * @param {string} text - The message text to display.
+         * @param {number} duration - The duration in milliseconds to show the message. Omit for permanent.
+         */
+        function showMessage(text, duration) {
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden');
+            if (duration) {
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                }, duration);
+            }
+        }
+
+        /**
+         * Hides the message box.
+         */
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+
+        /**
+         * Populates the dropdown with the hardcoded list of country codes.
+         */
+        function populateCountryDropdown() {
+            // Sort the country codes alphabetically
+            localCountryCodes.sort();
+
+            // Create and append options to the select dropdown
+            localCountryCodes.forEach(code => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = code;
+                countrySelect.appendChild(option);
+            });
+            
+            // Load the map for the initial country
+            if (localCountryCodes.length > 0) {
+                 loadMapForCountry(localCountryCodes[0]);
+            }
+        }
+
+        /**
+         * Loads the geographical data for a given country code from a local path and adds it to the map.
+         * @param {string} countryCode - The 3-letter country code (e.g., 'BRA').
+         */
+        async function loadMapForCountry(countryCode) {
+            // Remove the previous GeoJSON layer if it exists
+            if (geoJsonLayer) {
+                map.removeLayer(geoJsonLayer);
+            }
+
+            showMessage(`Loading map for ${countryCode}...`, null);
+
+            // IMPORTANT: Browsers cannot directly load files from a local file path
+            // (e.g., file:///C:/Users/...) due to security restrictions.
+            // To fix this, you MUST run a local web server (like with Python or Node.js)
+            // and open the page via http://localhost:...
+            //
+            // Here's a simple way to start a server using Python (if installed):
+            // 1. Open your terminal or command prompt.
+            // 2. Navigate to your project folder (where index.html is located).
+            // 3. Run the command: `python -m http.server`
+            // 4. Then, open your browser and go to `http://localhost:8000`
+            //
+            // The file path assumes your files are organized like this:
+            // your_project/
+            // ├── index.html
+            // └── data/
+            //     ├── BRA/
+            //     │   └── ADM1/
+            //     │       └── geoBoundaries-BRA-ADM1.geojson
+            //     └── USA/
+            //         └── ADM1/
+            //             └── geoBoundaries-USA-ADM1.geojson
+            //     ...
+
+            const geoJsonUrl = `releaseData/gbOpen/${countryCode}/ADM1/geoBoundaries-${countryCode}-ADM1.geojson`;
+            
+            try {
+                // Fetch the GeoJSON data from the local path
+                const response = await fetch(geoJsonUrl);
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch local resource. Make sure you are running a local web server.`);
+                }
+                const data = await response.json();
+
+                // Add the new GeoJSON layer to the map
+                geoJsonLayer = L.geoJSON(data, {
+                    style: {
+                        color: '#007bff',
+                        weight: 2,
+                        opacity: 0.65,
+                        fillOpacity: 0.2
+                    },
+                    onEachFeature: function(feature, layer) {
+                        // The property name for the state name might vary.
+                        if (feature.properties && feature.properties.shapeName) {
+                            layer.bindPopup(feature.properties.shapeName);
+                        }
+                    }
+                }).addTo(map);
+
+                // Fit the map view to the bounds of the new layer
+                map.fitBounds(geoJsonLayer.getBounds());
+                hideMessage();
+
+            } catch (error) {
+                console.error('There was a problem loading the GeoJSON data:', error);
+                showMessage(`Error: Failed to load map. You must run a local web server.`, 8000);
+            }
+        }
+
+        // --- Event Listeners ---
+        // Listen for changes in the dropdown selection
+        countrySelect.addEventListener('change', (event) => {
+            const selectedCode = event.target.value;
+            loadMapForCountry(selectedCode);
+        });
+        
+        // --- Initial Call ---
+        // Populate the dropdown when the page loads
+        populateCountryDropdown();
+    </script>
+</body>
+
+</html>

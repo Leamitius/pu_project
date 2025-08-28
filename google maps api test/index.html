@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Dataset click + InfoWindow</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html, body, #map { height: 100%; margin: 0; padding: 0; }
+      /* Optional: small helper for a subtle info box style in the InfoWindow */
+      .attrs { font: 14px/1.35 system-ui, Arial, sans-serif; }
+      .attrs table { border-collapse: collapse; }
+      .attrs td { border-top: 1px solid #eee; padding: 4px 6px; vertical-align: top; }
+      .attrs td:first-child { font-weight: 600; white-space: nowrap; }
+      #map {
+        height: 90vh;
+        width: 100%;
+      }
+      #quiz {
+        font-size: 1.2em;
+        padding: 10px;
+        background: #fff;
+        border-bottom: 1px solid #ccc;
+        font-family: sans-serif;
+      }
+    </style>
+    <!-- Replace YOUR_API_KEY -->
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&v=weekly&callback=initMap"></script>
+    <script src="index.js"></script>
+     <!-- <script src="plain.js"></script> -->
+  </head>
+  <body>
+    <div id="quiz">
+      <span id="target">Loading target...</span>
+    </div>
+    <div id="map"></div>
+  </body>
+</html>
