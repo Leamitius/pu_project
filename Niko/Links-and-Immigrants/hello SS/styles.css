@@ -1,0 +1,45 @@
+body{
+
+    color:#414141;
+    background-color: #EEEEEE;    /* Light gray */
+font-size: 18px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Helvetica", "Arial", sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Helvetica", "Arial", sans-serif;
+  font-weight: bold;                              /* Add this */
+}
+
+h1 {
+  font-size: 2em;
+    text-align: center;
+}
+
+h2 {
+  font-size: 1.6em;
+}
+
+ul {
+  list-style-type: square;
+}
+
+ol {
+  list-style-type: upper-roman;
+}
+
+a {
+  color: #1a0dab; /* Standard link color */
+  text-decoration: none;
+}
+
+p {
+  text-align: center;
+}
+
+div {
+  margin: 20px;;
+}

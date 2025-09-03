@@ -1,0 +1,33 @@
+*,
+*::before
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin:0;
+  padding:0;
+}
+
+body{
+min-height: 400px;
+    color:#000000;
+    background-color: #EEEEEE;    /* Light gray */
+  border: 4px solid black;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+}
+.box{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+width: 100px;
+height: 100px;
+background-color: rgb(83, 83, 248);
+font-size: 20pt;
+
+}
