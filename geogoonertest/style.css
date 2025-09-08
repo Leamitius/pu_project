@@ -1,0 +1,63 @@
+* {
+box-sizing: border-box;
+}
+
+
+body {
+margin: 0;
+font-family: Arial, sans-serif;
+line-height: 1.6;
+color: #333;
+}
+header {
+background: #fff;
+box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+position: sticky;
+top: 0;
+z-index: 1000;
+}
+nav {
+  position: fixed;       /* keeps nav at top while scrolling */
+  top: 0;
+  left: 0;
+  width: 100%;           /* span the full width */
+  background: #fff;      /* white background */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  display: flex;         /* flexbox to position children */
+  justify-content: space-between; /* logo left, links right */
+  align-items: center;   /* vertically center content */
+  padding: 1rem 2rem;    /* spacing inside the bar */
+  z-index: 1000;         /* keeps nav above everything */
+  flex-wrap: wrap;   /* prevent wrapping */
+  height: 60px;  /* fixed height */
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.links a {
+  text-decoration: none;
+  color: #333;
+  margin-left: 1.5rem;  /* space between links */
+  font-weight: bold;
+}
+
+
+main {
+display:flex;
+justify-content: center;
+max-width: 100%;
+margin: 10px;
+padding: 2rem;
+padding-top: 60px; /* to avoid overlap with fixed nav */
+}
+.content img {
+max-width: 100%;
+border-radius: 20px;
+}
+footer {
+background: #f4f4f4;
+}
