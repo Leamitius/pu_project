@@ -26,10 +26,11 @@
             });
 
             // Load the GeoJSON file from the same directory
+            map.data.loadGeoJson('your_file.geojson');
 
             // Optional: style the features
             map.data.setStyle(function(feature) {
-                console.log(feature);
+                if(COUNTRIES.includes(attrs.shapeGroup))
                 return {
                     fillColor: 'red',
                     strokeWeight: 1
@@ -37,7 +38,6 @@
             });
         }
     </script>
-    <script async
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&v=weekly&callback=initMap&libraries=marker"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&callback=initMap" async defer></script>
 </body>
 </html>
