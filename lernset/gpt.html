@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Learnsets — Grid</title>
+
+  <!-- Simple, modern CSS (YouTube-like card grid) -->
+  <style>
+    :root{
+      --bg: #0f1724;
+      --card: #0b1220;
+      --muted: #94a3b8;
+      --accent: #ff3b30;
+      --glass: rgba(255,255,255,0.03);
+      --radius: 12px;
+      --gap: 18px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: #e6eef8;
+    }
+
+    html,body{
+      height:100%;
+      margin:0;
+      background: linear-gradient(180deg,#071029 0%, #07162b 100%);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .wrap{
+      max-width:1200px;
+      margin:32px auto;
+      padding:20px;
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+
+    .logo{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .logo .badge{
+      width:44px;height:44px;border-radius:8px;
+      background: linear-gradient(135deg, var(--accent), #ff7a66);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;color:white;font-size:18px;
+      box-shadow: 0 6px 18px rgba(255,59,48,0.12);
+    }
+
+    h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing: -0.2px;
+    }
+
+    .controls{
+      margin-left:auto;
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .search{
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.03);
+      padding:8px 12px;
+      border-radius:10px;
+      color:var(--muted);
+      min-width:220px;
+      outline:none;
+      transition:box-shadow .15s;
+    }
+    .search:focus{ box-shadow:0 6px 20px rgba(0,0,0,0.6); color:inherit; }
+
+    /* grid */
+    .grid{
+      margin-top:20px;
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap:var(--gap);
+    }
+
+    /* Tablet / Mobile */
+    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 600px){ .grid{ grid-template-columns: 1fr; } .controls{ width:100%; } .search{ min-width:0; flex:1; } }
+
+    /* card */
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+      transition: transform .12s ease, box-shadow .12s ease;
+      display:flex;
+      flex-direction:column;
+    }
+    .card:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(2,6,23,0.9); }
+
+    .thumb{
+      position:relative;
+      padding-top:56.25%; /* 16:9 */
+      background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    }
+
+    .thumb img{
+      position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    }
+
+    .meta{
+      padding:12px;
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+
+    .meta .info{
+      flex:1;
+      min-width:0;
+    }
+
+    .title{
+      font-weight:600;
+      font-size:15px;
+      margin:0 0 6px 0;
+      color: #e9f0fb;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .desc{
+      margin:0;
+      font-size:13px;
+      line-height:1.35;
+      color:var(--muted);
+      max-height:2.7em;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .meta .right{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:flex-end;
+      min-width:80px;
+    }
+
+    .btn{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      padding:6px 10px;
+      border-radius:8px;
+      color:#dfeefe;
+      cursor:pointer;
+      font-size:13px;
+    }
+    .btn.primary{
+      background: linear-gradient(90deg,var(--accent), #ff7a66);
+      border: none;
+      color:white;
+      box-shadow: 0 8px 20px rgba(255,59,48,0.12);
+    }
+
+    .muted{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* empty / loading */
+    .center{
+      text-align:center;
+      color:var(--muted);
+      margin-top:36px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <div class="badge">LS</div>
+        <div>
+          <h1>Learnsets</h1>
+          <div class="muted">All your learnsets in a YouTube-style grid</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <input id="search" class="search" placeholder="Search titles or descriptions..." />
+      </div>
+    </header>
+
+    <main>
+      <div id="status" class="center">Loading learnsets…</div>
+      <div id="grid" class="grid" aria-live="polite" style="display:none;"></div>
+    </main>
+  </div>
+
+  <script>
+    // --------- CONFIG ----------
+    // CHANGE THIS to your actual URL if needed
+    const API_URL = "https://pihezigo.myhostpoint.ch/lernset/api.php?action=get_all";
+
+    // If your API returns a structure like { status: "success", data: [...] } the code handles it.
+    // If you later add a 'thumbnail' or 'youtube_url' column to the learnsets table,
+    // you can replace `getThumbnailFor(item)` to use item.thumbnail or item.youtube_url.
+
+    // --------- HELPERS ----------
+    function getThumbnailFor(item){
+      // If you add item.thumbnail (URL) use it:
+      // if (item.thumbnail) return item.thumbnail;
+
+      // Fallback: generated placeholder with title initials
+      const text = encodeURIComponent((item.title || "Learnset").slice(0, 20));
+      // using via.placeholder for example; you can replace with your own thumbnail generation
+      return `https://via.placeholder.com/640x360.png?text=${text}`;
+    }
+
+    function formatDate(iso){
+      if(!iso) return "";
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.toLocaleString();
+    }
+
+    // --------- RENDER ----------
+    const grid = document.getElementById("grid");
+    const status = document.getElementById("status");
+    const searchInput = document.getElementById("search");
+
+    let items = [];     // full list
+    let filtered = [];  // filtered list
+
+    function renderGrid(list){
+      grid.innerHTML = "";
+      if (!list.length){
+        status.style.display = "block";
+        status.textContent = "No learnsets found.";
+        grid.style.display = "none";
+        return;
+      }
+
+      status.style.display = "none";
+      grid.style.display = "grid";
+
+      for (const it of list){
+        const card = document.createElement("article");
+        card.className = "card";
+
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+
+        const img = document.createElement("img");
+        img.alt = (it.title || "Learnset thumbnail");
+        img.src = getThumbnailFor(it);
+        thumb.appendChild(img);
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+
+        const info = document.createElement("div");
+        info.className = "info";
+
+        const title = document.createElement("h3");
+        title.className = "title";
+        title.textContent = it.title || "Untitled";
+
+        const desc = document.createElement("p");
+        desc.className = "desc";
+        desc.textContent = it.description || "";
+
+        info.appendChild(title);
+        info.appendChild(desc);
+
+        const right = document.createElement("div");
+        right.className = "right";
+
+        const date = document.createElement("div");
+        date.className = "muted";
+        date.textContent = formatDate(it.created_at || it.createdAt || "");
+
+        // A primary button — you can link to a details page or open a modal
+        const btn = document.createElement("button");
+        btn.className = "btn primary";
+        btn.textContent = "Open";
+        btn.addEventListener("click", () => {
+          // Default behavior: open a detail page if you have one
+          // e.g. location.href = `/learnset.html?id=${it.learnset_id}`;
+          // For now just show an alert (or implement modal)
+          window.location.href = `learnset.html?id=${encodeURIComponent(it.learnset_id || it.learnset_id)}`;
+        });
+
+        right.appendChild(date);
+        right.appendChild(btn);
+
+        meta.appendChild(info);
+        meta.appendChild(right);
+
+        card.appendChild(thumb);
+        card.appendChild(meta);
+
+        grid.appendChild(card);
+      }
+    }
+
+    // --------- FETCH ----------
+    async function load() {
+      try {
+        status.style.display = "block";
+        status.textContent = "Loading learnsets…";
+        grid.style.display = "none";
+
+        const res = await fetch(API_URL, { credentials: "include" });
+        if (!res.ok) throw new Error("Network response not ok: " + res.status);
+
+        const json = await res.json();
+
+        // Support both {status:'success', data:[...]} and raw array responses
+        const data = Array.isArray(json) ? json : (json.data ?? (json.data === undefined && json.status === "success" ? [] : json));
+
+        // If API returns {status: "success", data: [...] } set items = data
+        items = Array.isArray(data) ? data : (json.data || []);
+        filtered = items.slice();
+
+        if (!items || !Array.isArray(items)) {
+          throw new Error("Invalid API response format");
+        }
+
+        renderGrid(filtered);
+      } catch (err) {
+        console.error(err);
+        status.style.display = "block";
+        status.textContent = "Failed to load learnsets. " + (err.message || "");
+      }
+    }
+
+    // --------- SEARCH ----------
+    function applyFilter(q){
+      q = (q || "").trim().toLowerCase();
+      if (!q) {
+        filtered = items.slice();
+      } else {
+        filtered = items.filter(it => {
+          const t = (it.title || "") + " " + (it.description || "") + " " + (it.username || "");
+          return t.toLowerCase().includes(q);
+        });
+      }
+      renderGrid(filtered);
+    }
+
+    searchInput.addEventListener("input", (e) => applyFilter(e.target.value));
+
+    // initial load
+    load();
+
+  </script>
+</body>
+</html>
