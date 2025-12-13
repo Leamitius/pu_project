@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Sign-In</title>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #eef2f5; /* soft gray background */
+    }
+  </style>
+
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- Custom JS -->
+  <script src="login.js" defer></script>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-4">
+
+  <!-- Google Sign-In setup -->
+  <div id="g_id_onload"
+       data-client_id="882122884872-lqc2utdp744cju280483c0qt9bmtns5m.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
+
+  <!-- Main card -->
+  <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+
+    <!-- Login Section -->
+    <div id="login-section" class="flex flex-col items-center text-center">
+      <h1 class="text-3xl font-bold text-gray-800 mb-4">Welcome</h1>
+      <p class="text-gray-600 mb-6">Sign in with your Google account to continue.</p>
+
+      <!-- Google Sign-In button -->
+      <div class="g_id_signin"
+           data-type="standard"
+           data-size="large"
+           data-theme="outline"
+           data-text="sign_in_with"
+           data-shape="rounded"
+           data-logo_alignment="left">
+      </div>
+    </div>
+
+    <!-- Profile Section (hidden by default) -->
+    <div id="profile-section" class="hidden flex flex-col items-center text-center">
+      <img id="profile-img" alt="Profile" class="w-24 h-24 rounded-full mb-4 shadow-md">
+      <h2 id="profile-name" class="text-2xl font-semibold text-gray-800 mb-2"></h2>
+      <p id="profile-email" class="text-gray-600 mb-6"></p>
+      <button id="logout-btn"
+              class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full transition duration-300 shadow-md">
+        Sign Out
+      </button>
+    </div>
+
+  </div>
+
+</body>
+</html>

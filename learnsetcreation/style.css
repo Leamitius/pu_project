@@ -1,0 +1,101 @@
+:root {
+  --bg: #f5f7fb;
+  --primary: #4a90e2;
+  --secondary: #6c757d;
+  --card-bg: #fff;
+  --text-dark: #333;
+  --text-light: #666;
+  --border-radius: 12px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: var(--bg);
+  margin: 0;
+  padding: 0;
+  color: var(--text-dark);
+}
+
+.container {
+  width: 90%;
+  max-width: 800px;
+  margin: 40px auto;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 30px;
+}
+
+h1 {
+  text-align: center;
+  color: var(--primary);
+  margin-bottom: 30px;
+}
+
+a {
+  text-decoration: none;
+  color: var(--primary);
+  transition: 0.2s;
+}
+
+a:hover {
+  color: #2a75d2;
+}
+
+button, input[type="submit"] {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover, input[type="submit"]:hover {
+  background: #2a75d2;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.learnset-card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  margin: 15px 0;
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.learnset-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+label {
+  display: block;
+  margin: 12px 0 5px;
+  font-weight: 500;
+}
+
+input[type="text"], textarea, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
