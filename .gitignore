@@ -1,0 +1,7 @@
+# Ignoriere alle "build"-Ordner (egal, wo sie im Repo liegen)
+**/build/
+
+# Ignoriere alle .vscode-Ordner (egal, wo sie liegen)
+**/.vscode/
+
+*.yaml
