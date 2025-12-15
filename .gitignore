@@ -4,4 +4,6 @@
 # Ignoriere alle .vscode-Ordner (egal, wo sie liegen)
 **/.vscode/
 
-*.yaml
+/.vscode/
+
+*.json
