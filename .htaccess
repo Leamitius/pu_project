@@ -1,0 +1,48 @@
+RewriteEngine On
+
+# ==================================================
+# 0. ADMIN ROUTES (VERY IMPORTANT: FIRST!)
+# ==================================================
+
+# /admin → /admin/index.html
+RewriteRule ^admin/?$ admin/index.html [L,QSA]
+
+# /admin/learnset/{slug}
+RewriteRule ^admin/learnset/([a-zA-Z0-9_-]+)/?$ admin/learnset.html?slug=$1 [L,QSA]
+
+
+# ==================================================
+# 1. PUBLIC Learnset routing
+# ==================================================
+RewriteRule ^learnsets/([a-zA-Z0-9_-]+)/?$ questions.html?slug=$1 [L,QSA]
+
+
+# ==================================================
+# 2. Redirect /index or /index.html to /
+# ==================================================
+RewriteCond %{THE_REQUEST} /index(\.html)? [NC]
+RewriteRule ^index(\.html)?$ / [R=301,L]
+
+
+# ==================================================
+# 3. Redirect *.html URLs to no .html
+# ==================================================
+RewriteCond %{THE_REQUEST} \s([^.]+)\.html [NC]
+RewriteRule ^ %1 [R=301,L]
+
+
+# ==================================================
+# 4. Map extensionless URLs → .html (KEEP QUERY!)
+# ==================================================
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L,QSA]
+
+
+# ==================================================
+# 5. SECURITY
+# ==================================================
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>

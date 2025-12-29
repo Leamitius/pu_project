@@ -1,0 +1,5 @@
+RewriteEngine On
+
+RewriteRule ^learnset/([a-zA-Z0-9_-]+)/?$ learnset.html [L,QSA]
+
+RewriteRule ^$ index.html [L]

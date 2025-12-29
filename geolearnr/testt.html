@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GeoJSON Click Highlight Fix</title>
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script>
+let selectedFeature = null;
+
+function initMap() {
+  const map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 20, lng: 0 },
+    zoom: 2
+  });
+
+  // Load GeoJSON
+  map.data.loadGeoJson('custom.geo.json');
+
+  // Default style
+  map.data.setStyle({
+    fillColor: '#FF0000',
+    fillOpacity: 0.0, 
+    strokeColor: '#FF0000',
+    strokeWeight: 0
+  });
+
+  // Click listener
+  map.data.addListener('click', (event) => {
+    const feature = event.feature;
+
+    // Reset previous selection
+    if (selectedFeature && selectedFeature !== feature) {
+      map.data.overrideStyle(selectedFeature, {
+        fillOpacity: 0.0,
+        strokeWeight: 0
+      });
+    }
+
+    // Toggle selection
+    if (selectedFeature === feature) {
+      // Deselect if clicked again
+      map.data.overrideStyle(feature, { fillOpacity: 0.0, strokeWeight: 0 });
+      selectedFeature = null;
+    } else {
+      // Highlight new feature
+      map.data.overrideStyle(feature, { fillOpacity: 0.5, strokeWeight: 3 });
+      selectedFeature = feature;
+      console.log(feature.Fg.adm0_a3)
+    }
+  });
+}
+</script>
+
+
+
+<script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&callback=initMap&v=weekly">
+</script>
+
+</body>
+</html>

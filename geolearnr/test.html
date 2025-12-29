@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Country Guess Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f3f4f6;
+            font-family: Inter, sans-serif;
+        }
+
+        #minimap-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 260px;
+            height: 200px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            transition: 0.15s ease;
+            z-index: 1000;
+        }
+
+        #minimap-container:hover {
+            width: 520px;
+            height: 400px;
+        }
+
+        #minimap {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center h-screen">
+
+    <div class="bg-white p-8 rounded-xl shadow-lg text-center max-w-lg w-full">
+        <h1 class="text-3xl font-bold mb-4">Guess the Country</h1>
+        <p id="current-country-text" class="mb-6 text-gray-600"></p>
+
+        <button id="check-btn"
+            class="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition">
+            Check Guess
+        </button>
+
+        <div id="result" class="hidden mt-6 p-4 bg-gray-100 rounded-lg text-sm"></div>
+    </div>
+
+    <div id="minimap-container">
+        <div id="minimap"></div>
+    </div>
+
+    <script>
+        /* global google */
+
+        let minimap;
+        let selectedFeature = null;
+
+        // 🔁 EDIT THIS
+        const MAP_ID = "df542bd3de8453454abd37a7";
+        const ADM0_DATASET_ID = "6b8b5272-c783-4f1b-b539-2bdd3a508a14";
+
+        // ---- countries ----
+        const countries = [
+            { name: "United States", iso2: "US" },
+            { name: "Canada", iso2: "CA" },
+            { name: "Brazil", iso2: "BR" },
+            { name: "United Kingdom", iso2: "GB" },
+            { name: "France", iso2: "FR" },
+            { name: "Germany", iso2: "DE" },
+            { name: "Russia", iso2: "RU" },
+            { name: "China", iso2: "CN" },
+            { name: "India", iso2: "IN" },
+            { name: "Australia", iso2: "AU" }
+        ];
+
+        let currentCountry = null;
+
+        // ---- styles ----
+        const STYLE_DEFAULT = {
+            fillColor: "#400000",
+            fillOpacity: 0.05,
+            strokeColor: "#000000",
+            strokeWeight: 1
+        };
+
+        const STYLE_SELECTED = {
+            fillColor: "#7837FF",
+            fillOpacity: 0.45,
+            strokeColor: "#7837FF",
+            strokeWeight: 2
+        };
+
+        // ---- game logic ----
+        function pickRandomCountry() {
+            currentCountry = countries[Math.floor(Math.random() * countries.length)];
+            document.getElementById("current-country-text").textContent =
+                `Find: ${currentCountry.name}`;
+        }
+
+        // ---- init map ----
+        async function initMap() {
+            map = new google.maps.Map(document.getElementById("minimap"), {
+                center: { lat: 20, lng: 0 },
+                zoom: 2,
+                mapId: MAP_ID,
+                disableDefaultUI: true,
+                clickableIcons: false
+            });
+
+            // Load GeoJSON
+            map.data.loadGeoJson('custom.geo.json');
+
+            // Default style
+            map.data.setStyle({
+                fillColor: '#FF0000',
+                fillOpacity: 0.0,
+                strokeColor: '#FF0000',
+                strokeWeight: 0
+            });
+
+            // Click listener
+            map.data.addListener('click', (event) => {
+                const feature = event.feature;
+
+                // Reset previous selection
+                if (selectedFeature && selectedFeature !== feature) {
+                    map.data.overrideStyle(selectedFeature, {
+                        fillOpacity: 0.0,
+                        strokeWeight: 0
+                    });
+                }
+
+                // Toggle selection
+                if (selectedFeature === feature) {
+                    // Deselect if clicked again
+                    map.data.overrideStyle(feature, { fillOpacity: 0.0, strokeWeight: 0 });
+                    selectedFeature = null;
+                } else {
+                    // Highlight new feature
+                    map.data.overrideStyle(feature, { fillOpacity: 0.5, strokeWeight: 3 });
+                    selectedFeature = feature;
+                    console.log(feature.Fg.iso_a2_eh)
+                }
+            });
+            pickRandomCountry();
+        }
+
+        // ---- check button ----
+        document.getElementById("check-btn").addEventListener("click", () => {
+            const result = document.getElementById("result");
+
+            if (!selectedFeature) {
+                result.textContent = "Please select a country first!";
+                result.classList.remove("hidden");
+                return;
+            }
+
+            const attrs = selectedFeature.Fg || {};
+            const iso2 = attrs.iso_a2_eh;
+            const name = attrs.admin || "Unknown";
+
+            if (iso2 === currentCountry.iso2) {
+                result.textContent = `✅ Correct! You selected ${name}.`;
+                pickRandomCountry();
+            } else {
+                result.textContent = `❌ Wrong. You selected ${name}.`;
+            }
+
+            result.classList.remove("hidden");
+        });
+
+        window.initMap = initMap;
+    </script>
+
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&callback=initMap&v=weekly">
+        </script>
+
+</body>
+
+</html>

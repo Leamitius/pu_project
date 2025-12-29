@@ -40,7 +40,7 @@
 
 
 
-fetch("api.php?action=get_all")
+fetch("api.php?action=get_all_sets")
   .then(res => res.json())
   .then(data => {
     const grid = document.getElementById("lernsets");

@@ -1,14 +1,38 @@
 RewriteEngine On
 
-#1. Redirect /index oder /index.html auf /
+
+# ==================================================
+# 1. PUBLIC Learnset routing
+# ==================================================
+RewriteRule ^learnsets/([a-zA-Z0-9_-]+)/?$ questions.html?slug=$1 [L,QSA]
+
+
+# ==================================================
+# 2. Redirect /index or /index.html to /
+# ==================================================
 RewriteCond %{THE_REQUEST} /index(\.html)? [NC]
 RewriteRule ^index(\.html)?$ / [R=301,L]
 
-# 2. Redirect *.html URLs auf ohne .html (außer index.html, die wurde oben behandelt)
-RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.html [NC]
+
+# ==================================================
+# 3. Redirect *.html URLs to no .html
+# ==================================================
+RewriteCond %{THE_REQUEST} \s([^.]+)\.html [NC]
 RewriteRule ^ %1 [R=301,L]
 
-# 3. Internes Umschreiben von URL ohne .html auf die echte .html Datei
+
+# ==================================================
+# 4. Map extensionless URLs → .html (KEEP QUERY!)
+# ==================================================
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}\.html -f
-RewriteRule ^(.*)$ $1.html [L]
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+)$ $1.html [L,QSA]
+
+
+# ==================================================
+# 5. SECURITY
+# ==================================================
+<Files .env>
+    Order allow,deny
+    Deny from all
+</Files>
