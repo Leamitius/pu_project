@@ -228,14 +228,18 @@ if ($action === "add_sets") {
 // ===================================================================
 if ($action === "add_question") {
 
-    $learnset_id     = intval($_POST["learnset_id"] ?? 0);
-    $question_text   = trim($_POST["question_text"] ?? "");
-    $answer_country  = trim($_POST["answer_country"] ?? "");
-    $position        = intval($_POST["position"] ?? 0);
+    $learnset_id    = intval($_POST["learnset_id"] ?? 0);
+    $question_text  = $_POST["question_text"] ?? "";   // leer erlaubt
+    $answer_country = $_POST["answer_country"] ?? "";  // leer erlaubt
+    $position       = intval($_POST["position"] ?? 0);
 
-    if (!$learnset_id || !$question_text || !$answer_country) {
+    // ❗ EINZIGE Pflicht
+    if (!$learnset_id) {
         http_response_code(400);
-        echo json_encode(["status" => "error", "message" => "Missing required fields"]);
+        echo json_encode([
+            "status" => "error",
+            "message" => "learnset_id required"
+        ]);
         exit;
     }
 
@@ -255,7 +259,10 @@ if ($action === "add_question") {
 
     if (!$stmt) {
         http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Prepare failed"]);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Prepare failed"
+        ]);
         exit;
     }
 
@@ -270,7 +277,10 @@ if ($action === "add_question") {
 
     if (!$stmt->execute()) {
         http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Insert failed"]);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Insert failed"
+        ]);
         exit;
     }
 
@@ -280,6 +290,75 @@ if ($action === "add_question") {
     ]);
     exit;
 }
+
+
+// ===================================================================
+// DELETE QUESTION (+ image)
+// ===================================================================
+if ($action === "delete_question") {
+
+    $question_id = intval($_POST["question_id"] ?? $_GET["question_id"] ?? 0);
+
+    if (!$question_id) {
+        http_response_code(400);
+        echo json_encode([
+            "status" => "error",
+            "message" => "question_id required"
+        ]);
+        exit;
+    }
+
+    // -----------------------------------------
+    // Get image path
+    // -----------------------------------------
+    $stmt = $mysqli->prepare("SELECT image FROM questions WHERE question_id = ?");
+    $stmt->bind_param("i", $question_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res->fetch_assoc();
+
+    if (!$row) {
+        http_response_code(404);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Question not found"
+        ]);
+        exit;
+    }
+
+    $imagePath = $row["image"];
+
+    // -----------------------------------------
+    // Delete DB row
+    // -----------------------------------------
+    $stmt = $mysqli->prepare("DELETE FROM questions WHERE question_id = ?");
+    $stmt->bind_param("i", $question_id);
+
+    if (!$stmt->execute()) {
+        http_response_code(500);
+        echo json_encode([
+            "status" => "error",
+            "message" => "Delete failed"
+        ]);
+        exit;
+    }
+
+    // -----------------------------------------
+    // Delete image file
+    // -----------------------------------------
+    if ($imagePath) {
+        $fullPath = __DIR__ . $imagePath;
+        if (file_exists($fullPath)) {
+            @unlink($fullPath);
+        }
+    }
+
+    echo json_encode([
+        "status" => "success"
+    ]);
+    exit;
+}
+
 
 
 // ===================================================================
@@ -374,19 +453,116 @@ if ($action === "update_question") {
 
 
 
+
+if ($action === "create_learnset") {
+
+    $title = trim($_POST["title"] ?? "");
+    $description = trim($_POST["description"] ?? "");
+
+    if ($title === "") {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "Title required"]);
+        exit;
+    }
+
+    // ---------- SLUG ----------
+    $baseSlug = generateSlug($title);
+    $slug = $baseSlug;
+    $i = 1;
+
+    while (true) {
+        $stmt = $mysqli->prepare("SELECT 1 FROM learnsets WHERE slug = ?");
+        $stmt->bind_param("s", $slug);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows === 0) break;
+        $slug = $baseSlug . "-" . $i++;
+    }
+
+    // ---------- INSERT ----------
+    $stmt = $mysqli->prepare("
+        INSERT INTO learnsets (title, description, slug, created_at)
+        VALUES (?, ?, ?, NOW())
+    ");
+
+    $stmt->bind_param("sss", $title, $description, $slug);
+
+    if (!$stmt->execute()) {
+        http_response_code(500);
+        echo json_encode(["status" => "error", "message" => "Insert failed"]);
+        exit;
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "learnset_id" => $stmt->insert_id,
+        "slug" => $slug
+    ]);
+    exit;
+}
+
+
+if ($action === "update_learnset") {
+
+    $learnset_id = intval($_POST["learnset_id"] ?? 0);
+    $title = trim($_POST["title"] ?? "");
+    $description = trim($_POST["description"] ?? "");
+
+    if (!$learnset_id || $title === "") {
+        http_response_code(400);
+        echo json_encode(["status" => "error"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("
+        UPDATE learnsets
+        SET title = ?, description = ?
+        WHERE learnset_id = ?
+    ");
+
+    $stmt->bind_param("ssi", $title, $description, $learnset_id);
+
+    if (!$stmt->execute()) {
+        http_response_code(500);
+        echo json_encode(["status" => "error"]);
+        exit;
+    }
+
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+if ($action === "delete_learnset") {
+    $id = intval($_GET["learnset_id"] ?? 0);
+
+    $mysqli->query("DELETE FROM questions WHERE learnset_id = $id");
+    $mysqli->query("DELETE FROM learnsets WHERE learnset_id = $id");
+
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+
 // ===================================================================
 // INVALID ACTION
 // ===================================================================
 echo json_encode(["status" => "error", "message" => "Invalid action"]);
 exit;
 
+function generateSlug($string)
+{
+    $slug = strtolower(trim($string));
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+    $slug = trim($slug, '-');
+    return $slug;
+}
 
 
 function handleImageUpload($file)
 {
-
-    if ($file["size"] > 2 * 1024 * 1024) {
-        echo json_encode(["status" => "error", "message" => "Image > 2MB"]);
+    if ($file["error"] !== UPLOAD_ERR_OK) {
+        echo json_encode(["status" => "error", "message" => "Upload failed"]);
         exit;
     }
 
@@ -406,32 +582,59 @@ function handleImageUpload($file)
 
     compressImage($file["tmp_name"], $target);
 
+    if (!file_exists($target)) {
+        echo json_encode(["status" => "error", "message" => "Image save failed"]);
+        exit;
+    }
+
     return "/uploads/questions/" . $filename;
 }
 
 
+
 function compressImage($src, $dest)
 {
-
     $info = getimagesize($src);
+    if (!$info) {
+        throw new Exception("Invalid image");
+    }
 
+    // ---------------------------------------
+    // Load image
+    // ---------------------------------------
     switch ($info["mime"]) {
         case "image/png":
             $img = imagecreatefrompng($src);
+            imagepalettetotruecolor($img);
+            imagealphablending($img, true);
+            imagesavealpha($img, false);
             break;
+
         case "image/webp":
             $img = imagecreatefromwebp($src);
             break;
-        default:
+
+        case "image/jpeg":
             $img = imagecreatefromjpeg($src);
+            break;
+
+        default:
+            throw new Exception("Unsupported image type");
     }
 
-    imagejpeg($img, $dest, 80);
-    imagedestroy($img);
+    if (!$img) {
+        throw new Exception("Could not load image");
+    }
 
-    $quality = 75;
-    while (filesize($dest) > 2 * 1024 * 1024 && $quality > 40) {
-        imagejpeg(imagecreatefromjpeg($dest), $dest, $quality);
+    // ---------------------------------------
+    // Compress loop
+    // ---------------------------------------
+    $quality = 85;
+
+    do {
+        imagejpeg($img, $dest, $quality);
         $quality -= 5;
-    }
+    } while (filesize($dest) > 2 * 1024 * 1024 && $quality >= 40);
+
+    imagedestroy($img);
 }

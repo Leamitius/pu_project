@@ -112,12 +112,7 @@ function saveEdit(id) {
     if (imageFile) {
         formData.append("image", imageFile);
     }
-    console.log({
-  id,
-  text,
-  answer,
-  removeImage
-});
+
 
     fetch("/api.php?action=update_question", {
         method: "POST",
@@ -129,12 +124,25 @@ function saveEdit(id) {
 
 
 function deleteQuestion(id) {
-    fetch(`/api.php?action=delete_question&question_id=${id}`, {
-        method: "POST"
+    if (!confirm("Frage wirklich löschen?")) return;
+
+    const formData = new FormData();
+    formData.append("question_id", id);
+
+    fetch("/api.php?action=delete_question", {
+        method: "POST",
+        body: formData
     })
         .then(res => res.json())
-        .then(() => loadQuestions());
+        .then(data => {
+            if (data.status === "success") {
+                loadQuestions();
+            } else {
+                alert(data.message || "Delete failed");
+            }
+        });
 }
+
 
 function showAddQuestionForm() {
     const form = `
