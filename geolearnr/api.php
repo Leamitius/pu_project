@@ -156,7 +156,7 @@ if ($action === "get_questions_by_slug") {
 
     // 2. Get questions
     $stmt = $mysqli->prepare("
-        SELECT question_id, question_text, answer_country, image, position
+        SELECT *
         FROM questions
         WHERE learnset_id = ?
         ORDER BY position ASC
@@ -231,6 +231,7 @@ if ($action === "add_question") {
     $learnset_id    = intval($_POST["learnset_id"] ?? 0);
     $question_text  = $_POST["question_text"] ?? "";   // leer erlaubt
     $answer_country = $_POST["answer_country"] ?? "";  // leer erlaubt
+    $answer_text = $_POST["answer_text"] ?? "";  // leer erlaubt
     $position       = intval($_POST["position"] ?? 0);
 
     // ❗ EINZIGE Pflicht
@@ -253,8 +254,8 @@ if ($action === "add_question") {
     // ---------- INSERT ----------
     $stmt = $mysqli->prepare("
         INSERT INTO questions
-        (learnset_id, question_text, answer_country, image, position, created_at)
-        VALUES (?, ?, ?, ?, ?, NOW())
+        (learnset_id, question_text, answer_country, answer_text, image, position, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
     ");
 
     if (!$stmt) {
@@ -267,10 +268,11 @@ if ($action === "add_question") {
     }
 
     $stmt->bind_param(
-        "isssi",
+        "issssi",
         $learnset_id,
         $question_text,
         $answer_country,
+        $answer_text,
         $imagePath,
         $position
     );
@@ -369,6 +371,7 @@ if ($action === "update_question") {
     $question_id    = intval($_POST["question_id"] ?? 0);
     $question_text  = trim($_POST["question_text"] ?? "");
     $answer_country = trim($_POST["answer_country"] ?? "");
+    $answer_text    = trim($_POST["answer_text"] ?? "");
     $position       = intval($_POST["position"] ?? 0);
     $remove_image   = intval($_POST["remove_image"] ?? 0);
 
@@ -428,14 +431,15 @@ if ($action === "update_question") {
     // --------------------------------------------------
     $stmt = $mysqli->prepare("
         UPDATE questions
-        SET question_text = ?, answer_country = ?, image = ?, position = ?
+        SET question_text = ?, answer_country = ?, answer_text = ?, image = ?, position = ?
         WHERE question_id = ?
     ");
 
     $stmt->bind_param(
-        "sssii",
+        "ssssii",
         $question_text,
         $answer_country,
+        $answer_text,
         $imagePath,
         $position,
         $question_id

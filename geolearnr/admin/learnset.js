@@ -1,4 +1,6 @@
 let currentLearnsetId;
+let currentQuestionId;
+let editing;
 let questions = [];
 
 const pathParts = window.location.pathname.split("/").filter(Boolean);
@@ -17,6 +19,23 @@ if (!slug) {
     alert("No slug provided");
 }
 
+// keypress n
+document.addEventListener("keydown", function (e) {
+    if (e.key === "n") {
+        if (editing) { return }
+
+        e.preventDefault();
+
+        showAddQuestionForm();
+    }
+});
+document.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        addQuestion();
+        saveEdit(id)
+    }
+});
 
 document.getElementById("learnset-title").textContent =
     "Lade Learnset...";
@@ -47,9 +66,10 @@ function renderQuestions() {
 
         item.innerHTML = `
         <div class="d-flex justify-content-between align-items-center">
-            <div>
+            <div style="width: 80%;">
             <strong>${q.question_text}</strong><br>
-            <small class="text-muted">${q.answer_country}</small><br>
+            <small class="text-muted">${q.answer_country}</small><br>  
+            <small class="text-muted">${q.answer_text}</small><br>
             ${q.image ? `<img src="${q.image}" class="img-fluid mt-2" style="max-height:120px">` : ""}
             </div>
             <div>
@@ -69,18 +89,21 @@ function openEditQuestionForm(q) {
 }
 
 function editQuestion(id) {
+    editing = true
     const q = questions.find(x => x.question_id == id);
+    currentQuestionId = id
     if (!q) return;
 
     const form = `
     <div class="border p-3">
       <input id="edit-text" class="form-control mb-2" value="${q.question_text}">
       <input id="edit-answer" class="form-control mb-2" value="${q.answer_country}">
+      <input id="edit-answer-text" class="form-control mb-2" value="${q.answer_text}">
 
       ${q.image ? `
         <div class="mb-2">
           <img src="${q.image}" class="img-fluid mb-2" style="max-height:150px"><br>
-          <input type="checkbox" id="remove-image"> Bild entfernen
+          <input type="checkbox" id="remove-image" checked="true"> Bild entfernen
         </div>
       ` : ""}
 
@@ -96,8 +119,10 @@ function editQuestion(id) {
 
 
 function saveEdit(id) {
+    if (editing) { return }
     const text = document.getElementById("edit-text").value;
     const answer = document.getElementById("edit-answer").value;
+    const answer_text = document.getElementById("edit-answer-text").value;
     const imageFile = document.getElementById("edit-image").files[0];
     const removeImage = document.getElementById("remove-image")?.checked ? 1 : 0;
 
@@ -107,6 +132,7 @@ function saveEdit(id) {
     formData.append("position", 0);
     formData.append("question_text", text);
     formData.append("answer_country", answer);
+    formData.append("answer_text", answer_text);
     formData.append("remove_image", removeImage);
 
     if (imageFile) {
@@ -118,8 +144,9 @@ function saveEdit(id) {
         method: "POST",
         body: formData
     })
-        .then(res => res.json())
+        .then(res => { console.log(res); res.json() })
         .then(() => loadQuestions());
+    editing = false
 }
 
 
@@ -145,20 +172,26 @@ function deleteQuestion(id) {
 
 
 function showAddQuestionForm() {
+    editing = true;
     const form = `
         <div class="border p-3 mb-3">
         <input id="new-text" class="form-control mb-2" placeholder="Frage">
         <input id="new-answer" class="form-control mb-2" placeholder="Antwort-Land">
+        <input id="new-answer-text" class="form-control mb-2" placeholder="Antwort-Text">
         <input type="file" id="new-image" class="form-control mb-2">
         <button class="btn btn-success" onclick="addQuestion()">Hinzufügen</button>
         </div>
         `;
     document.getElementById("question-list").insertAdjacentHTML("afterbegin", form);
+    document.getElementById("new-text").focus();
+    // enter to submit
+
 }
 
 function addQuestion() {
     const text = document.getElementById("new-text").value;
     const answer = document.getElementById("new-answer").value;
+    const answer_text = document.getElementById("new-answer-text").value;
     const image = document.getElementById("new-image").files[0];
 
     const formData = new FormData();
@@ -167,6 +200,8 @@ function addQuestion() {
     formData.append("position", 0);
     formData.append("question_text", text);
     formData.append("answer_country", answer);
+    formData.append("answer_text", answer_text);
+    console.log(currentLearnsetId)
 
     if (image) {
         formData.append("image", image);
@@ -181,6 +216,7 @@ function addQuestion() {
             console.log(data);
             loadQuestions();
         });
+    editing = false;
 }
 
 
