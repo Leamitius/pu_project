@@ -40,33 +40,119 @@ let stats = {
 };
 
 
-
-
 // submit answer on space
 document.addEventListener("keydown", function (e) {
     if (e.key === " ") {
         e.preventDefault();
-        submitAnswer()
+        if (submitted) {
+            nextQuestion();
+        } else {
+            submitAnswer();
+        }
     }
+});
+
+document.getElementById("submit-btn").addEventListener("click", function () {
+    submitAnswer()
 });
 
 const slug = pathParts[1];
 
 console.log("SLUG:", slug); // ✅ "a"
+const STORAGE_KEY = `geolearnr_progress_${slug}`;
+
+function saveProgress() {
+    const data = {
+        currentQuestionIndex,
+        questions,
+        stats
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function clearProgress() {
+    localStorage.removeItem(STORAGE_KEY);
+}
+
 
 // ---------------- LOAD QUESTIONS ----------------
 fetch(`/api.php?action=get_questions_by_slug&slug=${encodeURIComponent(slug)}`)
     .then(res => res.json())
     .then(data => {
-        questions = data.questions;
-        questions = questions.sort(() => Math.random() - 0.5);
-        showQuestion(0);
+
+        const savedRaw = localStorage.getItem(STORAGE_KEY);
+
+        if (savedRaw) {
+            showResumeDialog(JSON.parse(savedRaw), data.questions);
+        } else {
+            startNewGame(data.questions);
+        }
     });
+function startNewGame(freshQuestions) {
+    questions = freshQuestions.sort(() => Math.random() - 0.5);
+    currentQuestionIndex = 0;
+    stats = { total: 0, correct: 0, wrong: [] };
+    showQuestion(0);
+}
+function resumeGame(saved) {
+    questions = saved.questions;
+    stats = saved.stats;
+    currentQuestionIndex = saved.currentQuestionIndex;
+    showQuestion(currentQuestionIndex);
+}
+
+
+function updateProgressUI() {
+    const el = document.getElementById("progress-indicator");
+    if (!el) return;
+
+    el.textContent =
+        `Frage ${currentQuestionIndex + 1} / ${questions.length} · ` +
+        `Richtig: ${stats.correct}`;
+}
+
+
+
+function showResumeDialog(saved, freshQuestions) {
+
+    document.getElementById("quiz-page").classList.add("d-none");
+    document.getElementById("analysis-page")?.classList.add("d-none");
+    document.getElementById("minimap-container").classList.add("d-none");
+
+    const page = document.getElementById("resume-page");
+    page.classList.remove("d-none");
+
+    document.getElementById("resume-info").innerHTML = `
+        Frage <strong>${saved.currentQuestionIndex + 1}</strong>
+        von <strong>${saved.questions.length}</strong><br>
+        ✅ ${saved.stats.correct} richtig
+    `;
+
+    document.getElementById("resume-btn").onclick = () => {
+        page.classList.add("d-none");
+        document.getElementById("quiz-page").classList.remove("d-none");
+        resumeGame(saved);
+    };
+
+    document.getElementById("restart-btn").onclick = () => {
+        clearProgress();
+        page.classList.add("d-none");
+        document.getElementById("quiz-page").classList.remove("d-none");
+        startNewGame(freshQuestions);
+    };
+}
+
 
 // ---------------- SHOW QUESTION ----------------
 function showQuestion(index) {
     const q = questions[index];
     if (!q) return;
+
+    updateProgressUI();
+    document.getElementById("minimap-container").classList.remove("d-none");
+
+
 
     document.getElementById("question-text").textContent = q.question_text || "";
     document.getElementById("answer-feedback").textContent = "";
@@ -87,7 +173,7 @@ function showQuestion(index) {
 }
 
 function submitAnswer() {
-    if(submitted) return;
+    if (submitted) return;
     if (!selectedFeature) return;
 
     const q = questions[currentQuestionIndex];
@@ -112,10 +198,13 @@ function submitAnswer() {
         stats.wrong.push({
             question: q.question_text,
             correctCountry: q.answer_country,
-            correctName: countries[q.answer_country]?.names?.de ?? q.answer_country,
+            correctName: countries[q.answer_country]?.names?.de,
             selected: selectedCode,
-            selectedName: countries[selectedCode]?.names?.de ?? selectedCode,
+            selectedName: countries[selectedCode]?.names?.de,
+            image: q.image,              // ✅
+            answer_text: q.answer_text   // ✅
         });
+
 
         feedback.textContent =
             `❌ Falsch – richtig wäre: ${countries[q.answer_country].names.de}`;
@@ -126,14 +215,18 @@ function submitAnswer() {
         document.getElementById("next-btn").classList.remove("d-none");
     }
     submitted = true
+    saveProgress();
+
 }
 
 
 // ---------------- NEXT QUESTION ----------------
 function nextQuestion() {
-        submitted = false
+    submitted = false
 
     currentQuestionIndex++;
+    saveProgress();
+
 
     if (currentQuestionIndex >= questions.length) {
         showEndAnalysis();
@@ -145,43 +238,80 @@ function nextQuestion() {
 }
 
 function showEndAnalysis() {
+    // remove style: overflow: hidden from body
+    document.body.style.overflow = "auto";
+
+    // Quiz-UI ausblenden
+    document.getElementById("minimap-container").classList.add("d-none");
+    document.getElementById("quiz-page").classList.add("d-none");
+
+    clearProgress();
+
+    // Analyse-Seite anzeigen
+    const page = document.getElementById("analysis-page");
+    page.classList.remove("d-none");
+
     const percent = Math.round((stats.correct / stats.total) * 100);
 
-    document.getElementById("minimap-container").classList.add("d-none");
-    document.getElementById("question-text").classList.add("d-none");
-    document.getElementById("answer-feedback").classList.add("d-none");
-    document.getElementById("answer-text").classList.add("d-none");
-    document.getElementById("question-image").classList.add("d-none");
-    document.getElementById("submit-btn").classList.add("d-none");
-    document.getElementById("next-btn").classList.add("d-none");
-
-    const end = document.getElementById("end-screen");
-    end.classList.remove("d-none");
-
-    let html = `
-        <h2>📊 Auswertung</h2>
-        <p><strong>${stats.correct}</strong> von <strong>${stats.total}</strong> richtig</p>
-        <p><strong>${percent}%</strong> korrekt</p>
+    // ---------------- SUMMARY ----------------
+    document.getElementById("analysis-summary").innerHTML = `
+        <p class="fs-5">
+            <strong>${stats.correct}</strong> von
+            <strong>${stats.total}</strong> richtig
+            (<strong>${percent}%</strong>)
+        </p>
     `;
 
-    if (stats.wrong.length > 0) {
-        html += `<h4>❌ Falsch beantwortet:</h4><ul>`;
-        stats.wrong.forEach(w => {
-            html += `
-                <li>
-                    <strong>${w.question}</strong><br>
-                    Deine Antwort: ${w.selectedName}<br>
-                    Richtig: ${w.correctName}
-                </li>
-            `;
-        });
-        html += `</ul>`;
-    } else {
-        html += `<p class="text-success fw-bold">🎉 Alles richtig!</p>`;
-    }
+    // ---------------- WRONG LIST ----------------
+    const list = document.getElementById("analysis-wrong-list");
+    list.innerHTML = "";
 
-    end.innerHTML = html;
+    stats.wrong.forEach(w => {
+
+        const col = document.createElement("div");
+        col.className = "col-12 col-md-6";
+
+        let html = `
+            <div class="analysis-card">
+                <h5>${w.question}</h5>
+
+                <p class="analysis-answer analysis-wrong">
+                    ❌ Deine Antwort: ${w.selectedName}
+                </p>
+
+                <p class="analysis-answer analysis-correct">
+                    ✅ Richtig: ${w.correctName}
+                </p>
+        `;
+
+        if (w.image) {
+            html += `<img src="${w.image}" alt="">`;
+        }
+
+        if (w.answer_text) {
+            html += `
+                <hr>
+                <p>${w.answer_text}</p>
+            `;
+        }
+
+        html += `</div>`;
+
+        col.innerHTML = html;
+        list.appendChild(col);
+    });
+
+    if (stats.wrong.length === 0) {
+        list.innerHTML = `
+            <div class="col-12">
+                <p class="text-success fw-bold fs-4">
+                    🎉 Perfekt! Keine falschen Antworten.
+                </p>
+            </div>
+        `;
+    }
 }
+
 
 
 // ---------------- MAP ----------------

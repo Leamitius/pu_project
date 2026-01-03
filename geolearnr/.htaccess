@@ -5,6 +5,7 @@ RewriteEngine On
 # 1. PUBLIC Learnset routing
 # ==================================================
 RewriteRule ^learnsets/([a-zA-Z0-9_-]+)/?$ questions.html?slug=$1 [L,QSA]
+RewriteRule ^information/([a-zA-Z0-9_-]+)/?$ infos.html?slug=$1 [L,QSA]
 
 
 # ==================================================
