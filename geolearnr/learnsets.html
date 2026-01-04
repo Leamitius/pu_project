@@ -15,18 +15,62 @@
 
 
     <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
+
             <a class="navbar-brand d-flex align-items-center" href="https://geolearnr.ch">
-                <img src="https://geolearnr.ch/images/Logo-No-Text.png" alt="Logo" width="30" height="30" class="me-2">GEOLEARNR</a>
+                <img src="https://geolearnr.ch/images/Logo-No-Text.png" alt="Logo" width="30" height="30" class="me-2">
+                GEOLEARNR
+            </a>
+
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="https://geolearnr.ch">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="https://geolearnr.ch/learnsets">Learnsets</a></li>
-                    <li class="nav-item"><a class="nav-link" href="https://geolearnr.ch/information">Info</a></li>
+                <ul class="navbar-nav ms-auto align-items-center">
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/learnsets">Learnsets</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="/information">Info</a>
+                    </li>
+
+                    <!-- LOGIN / USER DROPDOWN -->
+                    <li class="nav-item dropdown d-none" id="userDropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button"
+                            data-bs-toggle="dropdown">
+
+                            <img id="navAvatar" class="rounded-circle me-2 d-none" width="32" height="32">
+
+                            <span id="navUsername">User</span>
+                        </a>
+
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/admin">Meine Learnsets</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item" id="loginBtn">
+                        <a class="nav-link" href="https://geolearnr.ch/login">Login</a>
+                    </li>
+
+
+                    <!-- LOGIN BUTTON -->
+                    <li class="nav-item ms-3" id="loginBtn" style="display:none;">
+                        <a class="btn btn-outline-light btn-sm" href="https://geolearnr.ch/login">Login</a>
+                    </li>
+
                 </ul>
             </div>
         </div>
@@ -56,6 +100,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="https://geolearnr.ch/js/learnset.js"></script>
+    <script src="https://geolearnr.ch/js/navbar.js"></script>
 
 </body>
 

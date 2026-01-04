@@ -3,6 +3,7 @@ let questions = [];
 let selectedFeature = null;
 let map;
 let submitted;
+let wronganswer;
 
 let minimap;
 
@@ -44,7 +45,7 @@ let stats = {
 document.addEventListener("keydown", function (e) {
     if (e.key === " ") {
         e.preventDefault();
-        if (submitted) {
+        if (wronganswer) {
             nextQuestion();
         } else {
             submitAnswer();
@@ -77,9 +78,20 @@ function clearProgress() {
 
 
 // ---------------- LOAD QUESTIONS ----------------
-fetch(`/api.php?action=get_questions_by_slug&slug=${encodeURIComponent(slug)}`)
-    .then(res => res.json())
+fetch(`/api.php?action=get_public_questions_by_slug&slug=${encodeURIComponent(slug)}`)
+    .then(res => {
+        if (res.status === 403) {
+            window.location.href = "https://geolearnr.ch/learnsets";
+            return;
+        }
+        if (res.status === 404) {
+            window.location.href = "https://geolearnr.ch/learnsets";
+            return;
+        }
+        return res.json();
+    })
     .then(data => {
+        if (!data || data.status !== "success") return;
 
         const savedRaw = localStorage.getItem(STORAGE_KEY);
 
@@ -89,12 +101,16 @@ fetch(`/api.php?action=get_questions_by_slug&slug=${encodeURIComponent(slug)}`)
             startNewGame(data.questions);
         }
     });
+
+
 function startNewGame(freshQuestions) {
     questions = freshQuestions.sort(() => Math.random() - 0.5);
     currentQuestionIndex = 0;
     stats = { total: 0, correct: 0, wrong: [] };
     showQuestion(0);
 }
+
+
 function resumeGame(saved) {
     questions = saved.questions;
     stats = saved.stats;
@@ -111,7 +127,6 @@ function updateProgressUI() {
         `Frage ${currentQuestionIndex + 1} / ${questions.length} · ` +
         `Richtig: ${stats.correct}`;
 }
-
 
 
 function showResumeDialog(saved, freshQuestions) {
@@ -178,7 +193,13 @@ function submitAnswer() {
 
     const q = questions[currentQuestionIndex];
     const selectedCode = selectedFeature.getProperty("iso_a2_eh");
-    const correct = selectedCode === q.answer_country;
+
+    // ➤ Mehrere richtige Länder erlauben
+    const correctCountries = q.answer_country
+        .split(",")
+        .map(c => c.trim());
+
+    const correct = correctCountries.includes(selectedCode);
 
     const feedback = document.getElementById("answer-feedback");
 
@@ -195,34 +216,43 @@ function submitAnswer() {
         }, 1000);
 
     } else {
+        wronganswer = true;
+
+        // ➤ Alle korrekten Ländernamen übersetzen
+        const correctNames = correctCountries
+            .map(code => countries[code]?.names?.de)
+            .filter(Boolean)
+            .join(", ");
+
         stats.wrong.push({
             question: q.question_text,
-            correctCountry: q.answer_country,
-            correctName: countries[q.answer_country]?.names?.de,
+            correctCountry: correctCountries,   // jetzt Array
+            correctName: correctNames,          // übersetzt
             selected: selectedCode,
             selectedName: countries[selectedCode]?.names?.de,
-            image: q.image,              // ✅
-            answer_text: q.answer_text   // ✅
+            image: q.image,
+            answer_text: q.answer_text
         });
 
-
         feedback.textContent =
-            `❌ Falsch – richtig wäre: ${countries[q.answer_country].names.de}`;
+            `❌ Falsch – richtig wäre: ${correctNames}`;
         document.getElementById("answer-text").textContent = q.answer_text;
         feedback.className = "text-danger fw-bold";
 
         document.getElementById("submit-btn").classList.add("d-none");
         document.getElementById("next-btn").classList.remove("d-none");
     }
-    submitted = true
-    saveProgress();
 
+    submitted = true;
+    saveProgress();
 }
+
 
 
 // ---------------- NEXT QUESTION ----------------
 function nextQuestion() {
-    submitted = false
+    wronganswer = false;
+    submitted = false;
 
     currentQuestionIndex++;
     saveProgress();
@@ -280,7 +310,9 @@ function showEndAnalysis() {
                 </p>
 
                 <p class="analysis-answer analysis-correct">
-                    ✅ Richtig: ${w.correctName}
+                    ✅ Richtig: ${Array.isArray(w.correctCountry)
+                    ? w.correctCountry.map(code => countries[code]?.names?.de).join(", ")
+                    : countries[w.correctCountry]?.names?.de}
                 </p>
         `;
 

@@ -1,6 +1,7 @@
 let currentLearnsetId;
 let currentQuestionId;
 let editing;
+let adding;
 let questions = [];
 
 const pathParts = window.location.pathname.split("/").filter(Boolean);
@@ -22,7 +23,7 @@ if (!slug) {
 // keypress n
 document.addEventListener("keydown", function (e) {
     if (e.key === "n") {
-        if (editing) { return }
+        if (editing || adding) { return }
 
         e.preventDefault();
 
@@ -32,8 +33,12 @@ document.addEventListener("keydown", function (e) {
 document.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
         e.preventDefault();
-        addQuestion();
-        saveEdit(id)
+        if (adding) {
+            addQuestion();
+        }
+        if (editing) {
+            saveEdit(currentQuestionId)
+        }
     }
 });
 
@@ -42,18 +47,24 @@ document.getElementById("learnset-title").textContent =
 
 
 fetch(`/api.php?action=get_questions_by_slug&slug=${slug}`)
-    .then(res => res.json())
+    .then(res => {
+        if (res.status === 401 || res.status === 403) {
+            window.location.href = "https://geolearnr.ch/admin";
+            return;
+        }
+        return res.json();
+    })
     .then(data => {
-        if (data.status !== "success") return;
+        if (!data || data.status !== "success") return;
 
         document.getElementById("learnset-title").textContent =
             data.learnset.title;
+
         currentLearnsetId = data.learnset.learnset_id;
-
-
         questions = data.questions;
         renderQuestions();
     });
+
 
 
 function renderQuestions() {
@@ -119,7 +130,6 @@ function editQuestion(id) {
 
 
 function saveEdit(id) {
-    if (editing) { return }
     const text = document.getElementById("edit-text").value;
     const answer = document.getElementById("edit-answer").value;
     const answer_text = document.getElementById("edit-answer-text").value;
@@ -172,7 +182,7 @@ function deleteQuestion(id) {
 
 
 function showAddQuestionForm() {
-    editing = true;
+    adding = true;
     const form = `
         <div class="border p-3 mb-3">
         <input id="new-text" class="form-control mb-2" placeholder="Frage">
@@ -216,7 +226,7 @@ function addQuestion() {
             console.log(data);
             loadQuestions();
         });
-    editing = false;
+    adding = false;
 }
 
 

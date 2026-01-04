@@ -8,13 +8,25 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
 header("Content-Type: application/json");
 
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'domain' => '.geolearnr.ch',
+    'secure' => true,
+    'httponly' => true,
+    'samesite' => 'None'
+]);
+
+session_start();
+
+
 $allowedOrigins = [
-    '*'
+    "https://geolearnr.ch"
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-if (in_array($origin, $allowedOrigins)) {
+if (in_array($origin, $allowedOrigins, true)) {
     header("Access-Control-Allow-Origin: $origin");
     header("Access-Control-Allow-Credentials: true");
 }
@@ -37,22 +49,96 @@ if (str_contains($_SERVER["CONTENT_TYPE"] ?? "", "application/json")) {
 $action = $_GET["action"] ?? "";
 
 
+if ($action === "get_public_learnsets") {
+
+    $result = $mysqli->query("
+        SELECT learnset_id, title, description, slug
+        FROM learnsets
+        WHERE state = 'visible'
+        ORDER BY created_at DESC
+    ");
+
+    echo json_encode([
+        "status" => "success",
+        "data" => $result->fetch_all(MYSQLI_ASSOC)
+    ]);
+    exit;
+}
+
+
+if ($action === "get_public_questions_by_slug") {
+
+    $slug = $_GET["slug"] ?? "";
+
+    $stmt = $mysqli->prepare("
+        SELECT learnset_id, title, description, state
+        FROM learnsets
+        WHERE slug = ?
+        LIMIT 1
+    ");
+    $stmt->bind_param("s", $slug);
+    $stmt->execute();
+
+    $learnset = $stmt->get_result()->fetch_assoc();
+
+    if (!$learnset) {
+        http_response_code(404);
+        exit;
+    }
+
+    // ⛔ Hidden Sets dürfen NICHT öffentlich geladen werden
+    if ($learnset["state"] === "hidden") {
+        http_response_code(403);
+        echo json_encode(["status" => "forbidden"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("
+        SELECT question_text, answer_country, answer_text, image
+        FROM questions
+        WHERE learnset_id = ?
+        ORDER BY position ASC
+    ");
+    $stmt->bind_param("i", $learnset["learnset_id"]);
+    $stmt->execute();
+
+    echo json_encode([
+        "status" => "success",
+        "learnset" => $learnset,
+        "questions" => $stmt->get_result()->fetch_all(MYSQLI_ASSOC)
+    ]);
+    exit;
+}
+
+
+
 // ===================================================================
 // GET ALL LEARNSETS
 // ===================================================================
 if ($action === "get_all_sets") {
 
-    $query = "SELECT * FROM learnsets ORDER BY created_at DESC";
-    $result = $mysqli->query($query);
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
 
-    if (!$result) {
-        http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Database query failed"]);
-        exit;
+    if ($isAdmin) {
+        $stmt = $mysqli->prepare("
+            SELECT * FROM learnsets ORDER BY created_at DESC
+        ");
+    } else {
+        $stmt = $mysqli->prepare("
+            SELECT * FROM learnsets
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+        ");
+        $stmt->bind_param("s", $user_id);
     }
 
+    $stmt->execute();
+    $res = $stmt->get_result();
+
     $rows = [];
-    while ($row = $result->fetch_assoc()) {
+    while ($row = $res->fetch_assoc()) {
         $rows[] = $row;
     }
 
@@ -114,7 +200,7 @@ if ($action === "get_all_questions") {
 // ===================================================================
 // GET QUESTIONS BY LEARNSET SLUG
 // ===================================================================
-if ($action === "get_questions_by_slug") {
+if ($action === "get_questions_by_slugs") {
 
     if (!isset($_GET['slug'])) {
         http_response_code(400);
@@ -185,6 +271,52 @@ if ($action === "get_questions_by_slug") {
 }
 
 
+if ($action === "get_questions_by_slug") {
+
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
+
+    $slug = $_GET["slug"] ?? "";
+
+    $stmt = $mysqli->prepare("
+        SELECT *
+        FROM learnsets
+        WHERE slug = ?
+        AND (user_id = ? OR ? = 1)
+        LIMIT 1
+    ");
+    $stmt->bind_param("ssi", $slug, $user_id, $isAdmin);
+    $stmt->execute();
+
+    $learnset = $stmt->get_result()->fetch_assoc();
+
+    if (!$learnset) {
+        http_response_code(403);
+        echo json_encode(["status" => "forbidden"]);
+        exit;
+    }
+
+    $stmt = $mysqli->prepare("
+        SELECT *
+        FROM questions
+        WHERE learnset_id = ?
+        ORDER BY position ASC
+    ");
+    $stmt->bind_param("i", $learnset["learnset_id"]);
+    $stmt->execute();
+
+    echo json_encode([
+        "status" => "success",
+        "learnset" => $learnset,
+        "questions" => $stmt->get_result()->fetch_all(MYSQLI_ASSOC)
+    ]);
+    exit;
+}
+
+
+
+
 // ===================================================================
 // ADD NEW LEARNSET
 // ===================================================================
@@ -228,70 +360,58 @@ if ($action === "add_sets") {
 // ===================================================================
 if ($action === "add_question") {
 
-    $learnset_id    = intval($_POST["learnset_id"] ?? 0);
-    $question_text  = $_POST["question_text"] ?? "";   // leer erlaubt
-    $answer_country = $_POST["answer_country"] ?? "";  // leer erlaubt
-    $answer_text = $_POST["answer_text"] ?? "";  // leer erlaubt
-    $position       = intval($_POST["position"] ?? 0);
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
 
-    // ❗ EINZIGE Pflicht
+    $learnset_id = intval($_POST["learnset_id"] ?? 0);
+
     if (!$learnset_id) {
         http_response_code(400);
-        echo json_encode([
-            "status" => "error",
-            "message" => "learnset_id required"
-        ]);
+        echo json_encode(["status" => "error"]);
         exit;
     }
 
-    // ---------- IMAGE ----------
-    $imagePath = null;
+    $stmt = $mysqli->prepare("
+        SELECT 1 FROM learnsets
+        WHERE learnset_id = ?
+        AND (user_id = ? OR ? = 1)
+    ");
+    $stmt->bind_param("isi", $learnset_id, $user_id, $isAdmin);
+    $stmt->execute();
 
+    if ($stmt->get_result()->num_rows === 0) {
+        http_response_code(403);
+        exit;
+    }
+
+    $imagePath = null;
     if (!empty($_FILES["image"]["tmp_name"])) {
         $imagePath = handleImageUpload($_FILES["image"]);
     }
 
-    // ---------- INSERT ----------
     $stmt = $mysqli->prepare("
         INSERT INTO questions
         (learnset_id, question_text, answer_country, answer_text, image, position, created_at)
         VALUES (?, ?, ?, ?, ?, ?, NOW())
     ");
 
-    if (!$stmt) {
-        http_response_code(500);
-        echo json_encode([
-            "status" => "error",
-            "message" => "Prepare failed"
-        ]);
-        exit;
-    }
-
     $stmt->bind_param(
         "issssi",
         $learnset_id,
-        $question_text,
-        $answer_country,
-        $answer_text,
+        $_POST["question_text"],
+        $_POST["answer_country"],
+        $_POST["answer_text"],
         $imagePath,
-        $position
+        intval($_POST["position"] ?? 0)
     );
 
-    if (!$stmt->execute()) {
-        http_response_code(500);
-        echo json_encode([
-            "status" => "error",
-            "message" => "Insert failed"
-        ]);
-        exit;
-    }
+    $stmt->execute();
 
-    echo json_encode([
-        "status" => "success",
-        "question_id" => $stmt->insert_id
-    ]);
+    echo json_encode(["status" => "success"]);
     exit;
 }
+
 
 
 // ===================================================================
@@ -299,157 +419,35 @@ if ($action === "add_question") {
 // ===================================================================
 if ($action === "delete_question") {
 
-    $question_id = intval($_POST["question_id"] ?? $_GET["question_id"] ?? 0);
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
 
-    if (!$question_id) {
-        http_response_code(400);
-        echo json_encode([
-            "status" => "error",
-            "message" => "question_id required"
-        ]);
-        exit;
-    }
+    $question_id = intval($_POST["question_id"] ?? 0);
 
-    // -----------------------------------------
-    // Get image path
-    // -----------------------------------------
-    $stmt = $mysqli->prepare("SELECT image FROM questions WHERE question_id = ?");
-    $stmt->bind_param("i", $question_id);
+    $stmt = $mysqli->prepare("
+        SELECT q.image
+        FROM questions q
+        JOIN learnsets l ON q.learnset_id = l.learnset_id
+        WHERE q.question_id = ?
+        AND (l.user_id = ? OR ? = 1)
+    ");
+    $stmt->bind_param("isi", $question_id, $user_id, $isAdmin);
     $stmt->execute();
-    $res = $stmt->get_result();
-    $row = $res->fetch_assoc();
 
+    $row = $stmt->get_result()->fetch_assoc();
     if (!$row) {
-        http_response_code(404);
-        echo json_encode([
-            "status" => "error",
-            "message" => "Question not found"
-        ]);
+        http_response_code(403);
         exit;
     }
 
-    $imagePath = $row["image"];
+    if ($row["image"]) {
+        @unlink(__DIR__ . $row["image"]);
+    }
 
-    // -----------------------------------------
-    // Delete DB row
-    // -----------------------------------------
     $stmt = $mysqli->prepare("DELETE FROM questions WHERE question_id = ?");
     $stmt->bind_param("i", $question_id);
-
-    if (!$stmt->execute()) {
-        http_response_code(500);
-        echo json_encode([
-            "status" => "error",
-            "message" => "Delete failed"
-        ]);
-        exit;
-    }
-
-    // -----------------------------------------
-    // Delete image file
-    // -----------------------------------------
-    if ($imagePath) {
-        $fullPath = __DIR__ . $imagePath;
-        if (file_exists($fullPath)) {
-            @unlink($fullPath);
-        }
-    }
-
-    echo json_encode([
-        "status" => "success"
-    ]);
-    exit;
-}
-
-
-
-// ===================================================================
-// UPDATE QUESTION (+ optional image)
-// ===================================================================
-if ($action === "update_question") {
-
-    $question_id    = intval($_POST["question_id"] ?? 0);
-    $question_text  = trim($_POST["question_text"] ?? "");
-    $answer_country = trim($_POST["answer_country"] ?? "");
-    $answer_text    = trim($_POST["answer_text"] ?? "");
-    $position       = intval($_POST["position"] ?? 0);
-    $remove_image   = intval($_POST["remove_image"] ?? 0);
-
-    if (
-        !$question_id ||
-        !isset($_POST["question_text"]) ||
-        !isset($_POST["answer_country"])
-    ) {
-        http_response_code(400);
-        echo json_encode([
-            "status" => "error",
-            "message" => "Missing fields"
-        ]);
-        exit;
-    }
-
-
-    // --------------------------------------------------
-    // Get current image
-    // --------------------------------------------------
-    $stmt = $mysqli->prepare("SELECT image FROM questions WHERE question_id = ?");
-    $stmt->bind_param("i", $question_id);
     $stmt->execute();
-    $current = $stmt->get_result()->fetch_assoc();
-
-    if (!$current) {
-        http_response_code(404);
-        echo json_encode(["status" => "error", "message" => "Question not found"]);
-        exit;
-    }
-
-    $imagePath = $current["image"];
-
-    // --------------------------------------------------
-    // Remove image
-    // --------------------------------------------------
-    if ($remove_image === 1 && $imagePath) {
-        @unlink(__DIR__ . $imagePath);
-        $imagePath = null;
-    }
-
-    // --------------------------------------------------
-    // New image upload
-    // --------------------------------------------------
-    if (!empty($_FILES["image"]["tmp_name"])) {
-
-        // delete old image
-        if ($imagePath) {
-            @unlink(__DIR__ . $imagePath);
-        }
-
-        $imagePath = handleImageUpload($_FILES["image"]);
-    }
-
-    // --------------------------------------------------
-    // Update DB
-    // --------------------------------------------------
-    $stmt = $mysqli->prepare("
-        UPDATE questions
-        SET question_text = ?, answer_country = ?, answer_text = ?, image = ?, position = ?
-        WHERE question_id = ?
-    ");
-
-    $stmt->bind_param(
-        "ssssii",
-        $question_text,
-        $answer_country,
-        $answer_text,
-        $imagePath,
-        $position,
-        $question_id
-    );
-
-    if (!$stmt->execute()) {
-        http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Update failed"]);
-        exit;
-    }
 
     echo json_encode(["status" => "success"]);
     exit;
@@ -458,7 +456,68 @@ if ($action === "update_question") {
 
 
 
+
+// ===================================================================
+// UPDATE QUESTION (+ optional image)
+// ===================================================================
+if ($action === "update_question") {
+
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
+
+    $question_id = intval($_POST["question_id"] ?? 0);
+
+    $stmt = $mysqli->prepare("
+        SELECT q.image
+        FROM questions q
+        JOIN learnsets l ON q.learnset_id = l.learnset_id
+        WHERE q.question_id = ?
+        AND (l.user_id = ? OR ? = 1)
+    ");
+    $stmt->bind_param("isi", $question_id, $user_id, $isAdmin);
+    $stmt->execute();
+
+    $row = $stmt->get_result()->fetch_assoc();
+    if (!$row) {
+        http_response_code(403);
+        exit;
+    }
+
+    $imagePath = $row["image"];
+
+    if (!empty($_FILES["image"]["tmp_name"])) {
+        if ($imagePath) @unlink(__DIR__ . $imagePath);
+        $imagePath = handleImageUpload($_FILES["image"]);
+    }
+
+    $stmt = $mysqli->prepare("
+        UPDATE questions
+        SET question_text = ?, answer_country = ?, answer_text = ?, image = ?
+        WHERE question_id = ?
+    ");
+    $stmt->bind_param(
+        "ssssi",
+        $_POST["question_text"],
+        $_POST["answer_country"],
+        $_POST["answer_text"],
+        $imagePath,
+        $question_id
+    );
+
+    $stmt->execute();
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+
+
+
 if ($action === "create_learnset") {
+
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
 
     $title = trim($_POST["title"] ?? "");
     $description = trim($_POST["description"] ?? "");
@@ -469,7 +528,6 @@ if ($action === "create_learnset") {
         exit;
     }
 
-    // ---------- SLUG ----------
     $baseSlug = generateSlug($title);
     $slug = $baseSlug;
     $i = 1;
@@ -482,19 +540,12 @@ if ($action === "create_learnset") {
         $slug = $baseSlug . "-" . $i++;
     }
 
-    // ---------- INSERT ----------
     $stmt = $mysqli->prepare("
-        INSERT INTO learnsets (title, description, slug, created_at)
-        VALUES (?, ?, ?, NOW())
+        INSERT INTO learnsets (title, description, slug, user_id, created_at)
+        VALUES (?, ?, ?, ?, NOW())
     ");
-
-    $stmt->bind_param("sss", $title, $description, $slug);
-
-    if (!$stmt->execute()) {
-        http_response_code(500);
-        echo json_encode(["status" => "error", "message" => "Insert failed"]);
-        exit;
-    }
+    $stmt->bind_param("ssss", $title, $description, $slug, $user_id);
+    $stmt->execute();
 
     echo json_encode([
         "status" => "success",
@@ -503,6 +554,7 @@ if ($action === "create_learnset") {
     ]);
     exit;
 }
+
 
 
 if ($action === "update_learnset") {
@@ -517,13 +569,13 @@ if ($action === "update_learnset") {
         exit;
     }
 
-    $stmt = $mysqli->prepare("
-        UPDATE learnsets
-        SET title = ?, description = ?
-        WHERE learnset_id = ?
-    ");
+    $user_id = requireAuth();
 
-    $stmt->bind_param("ssi", $title, $description, $learnset_id);
+    $stmt = $mysqli->prepare("
+    UPDATE learnsets
+    SET title = ?, description = ?
+    WHERE learnset_id = ? AND user_id = ?");
+    $stmt->bind_param("ssis", $title, $description, $learnset_id, $user_id);
 
     if (!$stmt->execute()) {
         http_response_code(500);
@@ -537,12 +589,176 @@ if ($action === "update_learnset") {
 
 
 if ($action === "delete_learnset") {
-    $id = intval($_GET["learnset_id"] ?? 0);
 
-    $mysqli->query("DELETE FROM questions WHERE learnset_id = $id");
-    $mysqli->query("DELETE FROM learnsets WHERE learnset_id = $id");
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
+
+    $learnset_id = intval($_GET["learnset_id"] ?? 0);
+
+    $stmt = $mysqli->prepare("
+        SELECT 1 FROM learnsets
+        WHERE learnset_id = ?
+        AND (user_id = ? OR ? = 1)
+    ");
+    $stmt->bind_param("isi", $learnset_id, $user_id, $isAdmin);
+    $stmt->execute();
+
+    if ($stmt->get_result()->num_rows === 0) {
+        http_response_code(403);
+        exit;
+    }
+
+    $mysqli->query("DELETE FROM questions WHERE learnset_id = $learnset_id");
+    $mysqli->query("DELETE FROM learnsets WHERE learnset_id = $learnset_id");
 
     echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+if ($action === "toggle_visibility") {
+
+    $auth = requireAuth();
+    $user_id = $auth["user_id"];
+    $isAdmin = ($auth["role"] === "admin");
+
+    $learnset_id = intval($_POST["learnset_id"] ?? 0);
+    if (!$learnset_id) {
+        http_response_code(400);
+        echo json_encode(["status" => "error"]);
+        exit;
+    }
+
+    // Prüfen ob der User Zugriff hat (Owner oder Admin)
+    $stmt = $mysqli->prepare("
+        SELECT 1 FROM learnsets
+        WHERE learnset_id = ?
+        AND (user_id = ? OR ? = 1)
+    ");
+    $stmt->bind_param("isi", $learnset_id, $user_id, $isAdmin);
+    $stmt->execute();
+
+    if ($stmt->get_result()->num_rows === 0) {
+        http_response_code(403);
+        echo json_encode(["status" => "forbidden"]);
+        exit;
+    }
+
+    // State umschalten
+    $stmt = $mysqli->prepare("
+        UPDATE learnsets
+        SET state = IF(state='visible','hidden','visible')
+        WHERE learnset_id = ?
+    ");
+    $stmt->bind_param("i", $learnset_id);
+
+    if (!$stmt->execute()) {
+        http_response_code(500);
+        echo json_encode(["status" => "error"]);
+        exit;
+    }
+
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+
+if ($action === "me") {
+    session_start();
+
+    echo json_encode([
+        "logged_in" => isset($_SESSION["user_id"]),
+        "user_id"   => $_SESSION["user_id"] ?? null,
+        "name"      => $_SESSION["name"] ?? null,
+        "picture"   => $_SESSION["picture"] ?? null,
+        "role"      => $_SESSION["role"] ?? "user"
+    ]);
+    exit;
+}
+
+
+if ($action === "google_login") {
+    session_start();
+
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    $idToken =
+        $_POST["credential"]
+        ?? $_POST["id_token"]
+        ?? $input["credential"]
+        ?? $input["id_token"]
+        ?? null;
+
+    if (!$idToken) {
+        http_response_code(400);
+        echo json_encode(["status" => "error", "message" => "Missing id token"]);
+        exit;
+    }
+
+    $data = verifyGoogleToken($idToken);
+    if (!$data) {
+        http_response_code(401);
+        echo json_encode(["status" => "error"]);
+        exit;
+    }
+
+    $user_id = $data["sub"];
+    $email   = $data["email"] ?? null;
+    $name    = $data["name"] ?? null;
+    $picture = $data["picture"] ?? null;
+
+    // ✅ USER ANLEGEN ODER AKTUALISIEREN
+    $stmt = $mysqli->prepare("
+        INSERT INTO users (user_id, email, name, picture)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            email = VALUES(email),
+            name = VALUES(name),
+            picture = VALUES(picture)
+    ");
+    $stmt->bind_param("ssss", $user_id, $email, $name, $picture);
+    $stmt->execute();
+
+    // ✅ ROLE AUS DB LADEN
+    $stmt = $mysqli->prepare("
+        SELECT role FROM users WHERE user_id = ?
+    ");
+    $stmt->bind_param("s", $user_id);
+    $stmt->execute();
+    $user = $stmt->get_result()->fetch_assoc();
+
+    // ✅ SESSION SETZEN
+    $_SESSION["user_id"] = $user_id;
+    $_SESSION["name"]    = $name;
+    $_SESSION["picture"] = $picture;
+    $_SESSION["role"]    = $user["role"] ?? "user";
+
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+
+
+if ($action === "logout") {
+    session_start();
+    session_destroy();
+
+    echo json_encode(["status" => "success"]);
+    exit;
+}
+
+
+if ($action === "session_debug") {
+    session_start(); // Falls noch nicht gestartet
+
+    echo json_encode([
+        "session_id" => session_id(),
+        "session" => $_SESSION,
+        "cookies" => $_COOKIE
+    ]);
     exit;
 }
 
@@ -641,4 +857,34 @@ function compressImage($src, $dest)
     } while (filesize($dest) > 2 * 1024 * 1024 && $quality >= 40);
 
     imagedestroy($img);
+}
+
+function requireAuth()
+{
+    session_start();
+
+    if (!isset($_SESSION["user_id"])) {
+        http_response_code(401);
+        echo json_encode(["status" => "unauthorized"]);
+        exit;
+    }
+
+    return [
+        "user_id" => $_SESSION["user_id"],
+        "role"    => $_SESSION["role"] ?? "user"
+    ];
+}
+
+
+
+function verifyGoogleToken($idToken)
+{
+    $url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . urlencode($idToken);
+    $response = file_get_contents($url);
+    if (!$response) return null;
+
+    $data = json_decode($response, true);
+    if (!isset($data["sub"])) return null;
+
+    return $data;
 }

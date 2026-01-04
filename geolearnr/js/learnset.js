@@ -3,7 +3,7 @@ function openQuiz(slug){
   window.location.href = `/learnsets/${slug}`;
 }
 
-fetch("api.php?action=get_all_sets")
+fetch("/api.php?action=get_public_learnsets")
   .then(res => res.json())
   .then(data => {
     const grid = document.getElementById("lernsets");
