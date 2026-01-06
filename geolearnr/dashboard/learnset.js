@@ -5,22 +5,13 @@ let adding;
 let questions = [];
 
 const pathParts = window.location.pathname.split("/").filter(Boolean);
-console.log(pathParts)
-// expected: ["learnsets", "a"]
-if (pathParts.length < 3 || pathParts[1] !== "learnset") {
-    console.error("Invalid learnset URL");
-    document.body.innerHTML = "Learnset not found";
-    throw new Error("Invalid URL");
-}
 
 const slug = pathParts[2];
-console.log(slug)
 
 if (!slug) {
     alert("No slug provided");
 }
 
-// keypress n
 document.addEventListener("keydown", function (e) {
     if (e.key === "n") {
         if (editing || adding) { return }
@@ -30,6 +21,7 @@ document.addEventListener("keydown", function (e) {
         showAddQuestionForm();
     }
 });
+
 document.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -42,29 +34,29 @@ document.addEventListener("keydown", function (e) {
     }
 });
 
-document.getElementById("learnset-title").textContent =
-    "Lade Learnset...";
 
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("learnset-title").textContent =
+        "Loading learnset...";
+    fetch(`/api.php?action=get_questions_by_slug&slug=${slug}`)
+        .then(res => {
+            if (res.status === 401 || res.status === 403) {
+                window.location.href = "https://geolearnr.ch/dashboard";
+                return;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data || data.status !== "success") return;
 
-fetch(`/api.php?action=get_questions_by_slug&slug=${slug}`)
-    .then(res => {
-        if (res.status === 401 || res.status === 403) {
-            window.location.href = "https://geolearnr.ch/admin";
-            return;
-        }
-        return res.json();
-    })
-    .then(data => {
-        if (!data || data.status !== "success") return;
+            document.getElementById("learnset-title").textContent =
+                data.learnset.title;
 
-        document.getElementById("learnset-title").textContent =
-            data.learnset.title;
-
-        currentLearnsetId = data.learnset.learnset_id;
-        questions = data.questions;
-        renderQuestions();
-    });
-
+            currentLearnsetId = data.learnset.learnset_id;
+            questions = data.questions;
+            renderQuestions();
+        });
+});
 
 
 function renderQuestions() {
@@ -75,29 +67,31 @@ function renderQuestions() {
         const item = document.createElement("div");
         item.className = "list-group-item";
 
-        item.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
-            <div style="width: 80%;">
-            <strong>${q.question_text}</strong><br>
-            <small class="text-muted">${q.answer_country}</small><br>  
-            <small class="text-muted">${q.answer_text}</small><br>
-            ${q.image ? `<img src="${q.image}" class="img-fluid mt-2" style="max-height:120px">` : ""}
-            </div>
-            <div>
-            <button class="btn btn-sm btn-primary" onclick="editQuestion(${q.question_id})">✏️</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteQuestion(${q.question_id})">🗑️</button>
-            </div>
-        </div>
-        `;
+       item.innerHTML = `
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
 
+    <div class="w-100 w-md-75">
+        <strong>${q.question_text}</strong><br>
+        <small class="text-muted">${q.answer_country}</small><br>  
+        <small class="text-muted">${q.answer_text}</small><br>
+
+        ${q.image ? `
+            <img src="${q.image}" class="img-fluid mt-2 rounded" style="max-height:120px">
+        ` : ""}
+    </div>
+
+    <div class="btn-group btn-group-sm">
+        <button class="btn btn-primary" onclick="editQuestion(${q.question_id})">✏️</button>
+        <button class="btn btn-danger" onclick="deleteQuestion(${q.question_id})">🗑️</button>
+    </div>
+
+</div>
+`;
 
         list.appendChild(item);
     });
 }
 
-function openEditQuestionForm(q) {
-    // TODO: Popup mit Frage editieren
-}
 
 function editQuestion(id) {
     editing = true
@@ -114,14 +108,14 @@ function editQuestion(id) {
       ${q.image ? `
         <div class="mb-2">
           <img src="${q.image}" class="img-fluid mb-2" style="max-height:150px"><br>
-          <input type="checkbox" id="remove-image" checked="true"> Bild entfernen
+          <input type="checkbox" id="remove-image"> Remove image
         </div>
       ` : ""}
 
       <input type="file" id="edit-image" class="form-control mb-2">
 
-      <button class="btn btn-success" onclick="saveEdit(${id})">Speichern</button>
-      <button class="btn btn-secondary ms-2" onclick="renderQuestions()">Abbrechen</button>
+    <button class="btn btn-success" onclick="saveEdit(${id})">Save</button>
+    <button class="btn btn-secondary ms-2" onclick="renderQuestions()">Cancel</button>
     </div>
   `;
 
@@ -149,19 +143,21 @@ function saveEdit(id) {
         formData.append("image", imageFile);
     }
 
-
     fetch("/api.php?action=update_question", {
         method: "POST",
         body: formData
     })
-        .then(res => { console.log(res); res.json() })
-        .then(() => loadQuestions());
+        .then(res => res.json())
+        .then(data => {
+            console.log(data);
+            loadQuestions();
+        });
     editing = false
 }
 
 
 function deleteQuestion(id) {
-    if (!confirm("Frage wirklich löschen?")) return;
+    if (!confirm("Are you sure you want to delete this question?")) return;
 
     const formData = new FormData();
     formData.append("question_id", id);
@@ -185,17 +181,15 @@ function showAddQuestionForm() {
     adding = true;
     const form = `
         <div class="border p-3 mb-3">
-        <input id="new-text" class="form-control mb-2" placeholder="Frage">
-        <input id="new-answer" class="form-control mb-2" placeholder="Antwort-Land">
-        <input id="new-answer-text" class="form-control mb-2" placeholder="Antwort-Text">
+        <input id="new-text" class="form-control mb-2" placeholder="Question">
+        <input id="new-answer" class="form-control mb-2" placeholder="Answer country">
+        <input id="new-answer-text" class="form-control mb-2" placeholder="Answer text">
         <input type="file" id="new-image" class="form-control mb-2">
-        <button class="btn btn-success" onclick="addQuestion()">Hinzufügen</button>
+        <button class="btn btn-success" onclick="addQuestion()">Add</button>
         </div>
         `;
     document.getElementById("question-list").insertAdjacentHTML("afterbegin", form);
     document.getElementById("new-text").focus();
-    // enter to submit
-
 }
 
 function addQuestion() {
@@ -211,7 +205,7 @@ function addQuestion() {
     formData.append("question_text", text);
     formData.append("answer_country", answer);
     formData.append("answer_text", answer_text);
-    console.log(currentLearnsetId)
+    console.log(currentLearnsetId + 100)
 
     if (image) {
         formData.append("image", image);
@@ -219,7 +213,8 @@ function addQuestion() {
 
     fetch("/api.php?action=add_question", {
         method: "POST",
-        body: formData
+        body: formData,
+        credentials: "include"
     })
         .then(res => res.json())
         .then(data => {

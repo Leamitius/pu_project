@@ -1,49 +1,51 @@
-
-function openQuiz(slug){
-  window.location.href = `/learnsets/${slug}`;
+function openQuiz(slug) {
+    window.location.href = `/learnsets/${slug}`;
 }
 
-fetch("/api.php?action=get_public_learnsets")
-  .then(res => res.json())
-  .then(data => {
-    const grid = document.getElementById("lernsets");
 
-    data.data.forEach(ele => {
-      // col
-      const col = document.createElement("div");
-      col.className = "col-md-4";
+document.addEventListener("DOMContentLoaded", () => {
+    fetch("/api.php?action=get_public_learnsets")
+        .then(res => res.json())
+        .then(data => {
+            const grid = document.getElementById("lernsets");
 
-      // card
-      const card = document.createElement("div");
-      card.className = "card h-100 shadow-sm";
+            data.data.forEach(ele => {
+                // col
+                const col = document.createElement("div");
+                col.className = "col-md-4";
 
-      // card body
-      const body = document.createElement("div");
-      body.className = "card-body";
+                // card
+                const card = document.createElement("div");
+                card.className = "card h-100 shadow-sm";
 
-      // title
-      const title = document.createElement("h5");
-      title.className = "card-title";
-      title.textContent = ele.title; // z.B. "Lernset 2"
+                // card body
+                const body = document.createElement("div");
+                body.className = "card-body";
 
-      // text
-      const text = document.createElement("p");
-      text.className = "card-text";
-      text.textContent = ele.description;
+                // title
+                const title = document.createElement("h5");
+                title.className = "card-title";
+                title.textContent = ele.title; // z.B. "Lernset 2"
 
-      // button
-      const btn = document.createElement("button");
-      btn.className = "btn btn-primary";
-      btn.textContent = "Öffnen";
-      btn.onclick = () => openQuiz(ele.slug); // oder ele.id
+                // text
+                const text = document.createElement("p");
+                text.className = "card-text";
+                text.textContent = ele.description;
 
-      // zusammenbauen
-      body.appendChild(title);
-      body.appendChild(text);
-      body.appendChild(btn);
+                // button
+                const btn = document.createElement("button");
+                btn.className = "btn btn-primary";
+                btn.textContent = "Open";
+                btn.onclick = () => openQuiz(ele.slug); // oder ele.id
 
-      card.appendChild(body);
-      col.appendChild(card);
-      grid.appendChild(col);
-    });
-  });
+                // zusammenbauen
+                body.appendChild(title);
+                body.appendChild(text);
+                body.appendChild(btn);
+
+                card.appendChild(body);
+                col.appendChild(card);
+                grid.appendChild(col);
+            });
+        });
+});

@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-
     fetch("/api.php?action=me", { credentials: "include" })
         .then(res => res.json())
         .then(data => {
@@ -23,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("loginBtn").classList.remove("d-none");
             }
         });
-
 });
 
 

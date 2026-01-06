@@ -3,8 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Admin – Geolearnr</title>
+    <title>GEOLEARNR</title>
+    <link rel="icon" type="image/png" href="https://geolearnr.ch/images/GEOLEARNR-Logo.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -51,8 +54,8 @@
                             <span id="navUsername">User</span>
                         </a>
 
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/admin">Meine Learnsets</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="/dashboard">My Learnsets</a></li>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
@@ -77,7 +80,7 @@
 
 
 
-    <div class="container mt-4 d-none" id="admin-content">
+    <div class="container mt-4 d-none" id="dashboard-content">
         <!-- DEIN GANZER BESTEHENDER ADMIN CODE -->
 
 
@@ -86,9 +89,9 @@
 
             <!-- Header -->
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Admin Panel</h2>
+                <h2>Dashboard</h2>
                 <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modal-add-learnset">
-                    + Neues Learnset
+                    + New Learnset
                 </button>
             </div>
 
@@ -105,25 +108,25 @@
                 <div class="modal-content">
 
                     <div class="modal-header">
-                        <h5 class="modal-title">Neues Learnset erstellen</h5>
+                        <h5 class="modal-title">Create New Learnset</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
 
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label">Titel</label>
+                            <label class="form-label">Title</label>
                             <input id="title" class="form-control">
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Beschreibung</label>
+                            <label class="form-label">Description</label>
                             <textarea id="description" class="form-control" rows="3"></textarea>
                         </div>
                     </div>
 
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                        <button class="btn btn-success" onclick="createLearnset()">Erstellen</button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button class="btn btn-success" onclick="createLearnset()">Create</button>
                     </div>
 
                 </div>
@@ -138,7 +141,7 @@
                 <div class="modal-content">
 
                     <div class="modal-header">
-                        <h5 class="modal-title">Learnset bearbeiten</h5>
+                        <h5 class="modal-title">Edit Learnset</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
 
@@ -146,20 +149,20 @@
                         <input type="hidden" id="edit-id">
 
                         <div class="mb-3">
-                            <label class="form-label">Titel</label>
+                            <label class="form-label">Title</label>
                             <input id="edit-title" class="form-control">
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Beschreibung</label>
+                            <label class="form-label">Description</label>
                             <textarea id="edit-description" class="form-control" rows="3"></textarea>
                         </div>
                     </div>
 
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button class="btn btn-primary" data-bs-dismiss="modal"
-                            onclick="saveLearnsetEdit()">Speichern</button>
+                            onclick="saveLearnsetEdit()">Save</button>
                     </div>
 
                 </div>
@@ -168,7 +171,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="admin.js"></script>
+    <script src="dashboard.js"></script>
     <script src="https://geolearnr.ch/js/navbar.js"></script>
 </body>
 

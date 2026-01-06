@@ -1,6 +1,3 @@
-// -------------------------
-// LOAD LEARNSETS
-// -------------------------
 function loadLearnsets() {
     fetch("/api.php?action=get_all_sets", {
         credentials: "include"
@@ -17,34 +14,37 @@ function loadLearnsets() {
 
             const list = document.getElementById("learnset-list");
             list.innerHTML = "";
-            document.getElementById("admin-content").classList.remove("d-none");
+            document.getElementById("dashboard-content").classList.remove("d-none");
 
 
             data.data.forEach(ls => {
                 const item = document.createElement("div");
+
                 item.className =
-                    "list-group-item d-flex justify-content-between align-items-center";
+                    "list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center";
 
                 item.innerHTML = `
-                <div>
-                    <strong>${ls.title}</strong><br>
-                    <small class="text-muted">${ls.description ?? ""}</small>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-primary me-1"
-                        onclick='editLearnset(${JSON.stringify(ls)})'>✏️</button>
-                    <button class="btn btn-sm btn-danger me-1"
-                        onclick="deleteLearnset(${ls.learnset_id})">🗑</button>
-                    <button class="btn btn-sm btn-success"
-                        onclick="openLearnset('${ls.slug}')">➡</button>
-                    <button class="btn btn-sm ${ls.state === "visible" ? "btn-warning" : "btn-secondary"} me-1"
-                        onclick="toggleVisibility(${ls.learnset_id})">
-                        ${ls.state === "visible" ? "👁️ sichtbar" : "🙈 versteckt"}
-                    </button>
+                    <div class="mb-2 mb-md-0">
+                        <strong>${ls.title}</strong><br>
+                        <small class="text-muted">${ls.description ?? ""}</small>
+                    </div>
 
+                    <div class="btn-group btn-group-sm flex-wrap">
+                        <button class="btn btn-primary"
+                            onclick='editLearnset(${JSON.stringify(ls)})'>✏️</button>
 
-                </div>
-            `;
+                        <button class="btn btn-danger"
+                            onclick="deleteLearnset(${ls.learnset_id})">🗑</button>
+
+                        <button class="btn btn-success"
+                            onclick="openLearnset('${ls.slug}')">➡</button>
+
+                        <button class="btn ${ls.state === "visible" ? "btn-warning" : "btn-secondary"}"
+                            onclick="toggleVisibility(${ls.learnset_id})">
+                            ${ls.state === "visible" ? "👁️ visible" : "🙈 hidden"}
+                        </button>
+                    </div>
+                `;
 
                 list.appendChild(item);
             });
@@ -61,23 +61,22 @@ function toggleVisibility(learnsetId) {
         },
         body: "learnset_id=" + encodeURIComponent(learnsetId)
     })
-    .then(res => {
-        if (!res.ok) {
-            console.error("HTTP error", res.status);
-        }
-        return res.json();
-    })
-    .then(data => {
-        console.log("toggle_visibility response:", data);
-        if (data && data.status === "success") {
-            loadLearnsets(); // Liste neu laden
-        }
-    })
-    .catch(err => {
-        console.error("Fetch error:", err);
-    });
+        .then(res => {
+            if (!res.ok) {
+                console.error("HTTP error", res.status);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log("toggle_visibility response:", data);
+            if (data && data.status === "success") {
+                loadLearnsets(); // Liste neu laden
+            }
+        })
+        .catch(err => {
+            console.error("Fetch error:", err);
+        });
 }
-
 
 
 function handleGoogleLogin(response) {
@@ -92,48 +91,32 @@ function handleGoogleLogin(response) {
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
-                initAdmin();
+                initdashboard();
             } else {
-                alert("Login fehlgeschlagen");
+                alert("Login failed");
             }
         });
 }
 
-function initAdmin() {
+
+function initdashboard() {
     document.getElementById("login-container").classList.add("d-none");
-    document.getElementById("admin-content").classList.remove("d-none");
+    document.getElementById("dashboard-content").classList.remove("d-none");
     loadLearnsets();
 }
 
 
-// function checkLogin() {
-//     fetch("/api.php?action=me",{
 
-//             credentials: "include"
-//     })
-//         .then(res => res.json())
-//         .then(data => {
-//             if (data.logged_in) {
-//                 initAdmin();
-//             }
-//         });
-// }
-
-// checkLogin();
-
-loadLearnsets()
+document.addEventListener("DOMContentLoaded", () => {
+    loadLearnsets()
+});
 
 
-// -------------------------
-// OPEN LEARNSET
-// -------------------------
 function openLearnset(slug) {
-    window.location.href = `/admin/learnset/${slug}`;
+    window.location.href = `/dashboard/learnset/${slug}`;
 }
 
-// -------------------------
-// CREATE LEARNSET
-// -------------------------
+
 function createLearnset() {
     const formData = new FormData();
     formData.append("action", "create_learnset");
@@ -148,15 +131,12 @@ function createLearnset() {
         .then(res => res.json())
         .then(data => {
             if (data.status === "success") {
-                // 👉 DIREKT ÖFFNEN
-                window.location.href = `/admin/learnset/${data.slug}`;
+                window.location.href = `/dashboard/learnset/${data.slug}`;
             }
         });
 }
 
-// -------------------------
-// EDIT LEARNSET
-// -------------------------
+
 function editLearnset(ls) {
     document.getElementById("edit-id").value = ls.learnset_id;
     document.getElementById("edit-title").value = ls.title || "";
@@ -167,9 +147,10 @@ function editLearnset(ls) {
     ).show();
 }
 
+
 function saveLearnsetEdit() {
     const formData = new FormData();
-    formData.append("action", "update_learnset");
+    // formData.append("action", "update_learnset");
     formData.append("learnset_id", document.getElementById("edit-id").value);
     formData.append("title", document.getElementById("edit-title").value);
     formData.append("description", document.getElementById("edit-description").value);
@@ -181,14 +162,18 @@ function saveLearnsetEdit() {
 
     })
         .then(res => res.json())
-        .then(() => loadLearnsets());
+        .then(data => {
+            if (data.status === "success") {
+                loadLearnsets();
+            } else {
+                alert("Update fehlgeschlagen");
+            }
+        });
 }
 
-// -------------------------
-// DELETE LEARNSET
-// -------------------------
+
 function deleteLearnset(id) {
-    if (!confirm("Learnset wirklich löschen?")) return;
+    if (!confirm("Are you sure you want to delete this learnset?")) return;
 
     fetch(`/api.php?action=delete_learnset&learnset_id=${id}`, {
         method: "POST",
@@ -197,11 +182,3 @@ function deleteLearnset(id) {
         .then(res => res.json())
         .then(() => loadLearnsets());
 }
-
-// loadLearnsets();
-
-// function logout() {
-//     fetch("/api.php?action=logout", {
-//         credentials: "include"
-//     }).then(() => location.reload());
-// }

@@ -4,6 +4,7 @@ let selectedFeature = null;
 let map;
 let submitted;
 let wronganswer;
+let answered = false;
 
 let minimap;
 
@@ -13,19 +14,11 @@ const ADM0_DATASET_ID = "6b8b5272-c783-4f1b-b539-2bdd3a508a14";
 
 const DEFAULT_MAP_CENTER = { lat: 20, lng: 0 };
 const DEFAULT_MAP_ZOOM = 2;
+
 const pathParts = window.location.pathname.split("/").filter(Boolean);
 let selectedCountryCode = null;
-let answered = false;
 
 let countries = {};
-fetch("https://geolearnr.ch/countries_by_iso2.json")
-    .then(res => res.json())
-    .then(data => {
-        countries = data;
-        console.log(countries["DE"].names.en); // Germany
-        console.log(countries["DE"].names.de); // Deutschland
-    })
-    .catch(err => console.warn("Could not load countries JSON:", err));
 
 // expected: ["learnsets", "a"]
 if (pathParts.length < 2 || pathParts[0] !== "learnsets") {
@@ -57,9 +50,9 @@ document.getElementById("submit-btn").addEventListener("click", function () {
     submitAnswer()
 });
 
+
 const slug = pathParts[1];
 
-console.log("SLUG:", slug); // ✅ "a"
 const STORAGE_KEY = `geolearnr_progress_${slug}`;
 
 function saveProgress() {
@@ -78,29 +71,41 @@ function clearProgress() {
 
 
 // ---------------- LOAD QUESTIONS ----------------
-fetch(`/api.php?action=get_public_questions_by_slug&slug=${encodeURIComponent(slug)}`)
-    .then(res => {
-        if (res.status === 403) {
-            window.location.href = "https://geolearnr.ch/learnsets";
-            return;
-        }
-        if (res.status === 404) {
-            window.location.href = "https://geolearnr.ch/learnsets";
-            return;
-        }
-        return res.json();
-    })
-    .then(data => {
-        if (!data || data.status !== "success") return;
+document.addEventListener("DOMContentLoaded", () => {
+    fetch("https://geolearnr.ch/countries_by_iso2.json")
+        .then(res => res.json())
+        .then(data => {
+            countries = data;
+            console.log(countries["DE"].names.en); // Germany
+            console.log(countries["DE"].names.de); // Deutschland
+        })
+        .catch(err => console.warn("Could not load countries JSON:", err));
 
-        const savedRaw = localStorage.getItem(STORAGE_KEY);
 
-        if (savedRaw) {
-            showResumeDialog(JSON.parse(savedRaw), data.questions);
-        } else {
-            startNewGame(data.questions);
-        }
-    });
+    fetch(`/api.php?action=get_public_questions_by_slug&slug=${encodeURIComponent(slug)}`)
+        .then(res => {
+            if (res.status === 403) {
+                window.location.href = "https://geolearnr.ch/learnsets";
+                return;
+            }
+            if (res.status === 404) {
+                window.location.href = "https://geolearnr.ch/learnsets";
+                return;
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (!data || data.status !== "success") return;
+
+            const savedRaw = localStorage.getItem(STORAGE_KEY);
+
+            if (savedRaw) {
+                showResumeDialog(JSON.parse(savedRaw), data.questions);
+            } else {
+                startNewGame(data.questions);
+            }
+        });
+});
 
 
 function startNewGame(freshQuestions) {
@@ -124,8 +129,8 @@ function updateProgressUI() {
     if (!el) return;
 
     el.textContent =
-        `Frage ${currentQuestionIndex + 1} / ${questions.length} · ` +
-        `Richtig: ${stats.correct}`;
+        `Question ${currentQuestionIndex + 1} / ${questions.length} · ` +
+        `Correct: ${stats.correct}`;
 }
 
 
@@ -139,9 +144,9 @@ function showResumeDialog(saved, freshQuestions) {
     page.classList.remove("d-none");
 
     document.getElementById("resume-info").innerHTML = `
-        Frage <strong>${saved.currentQuestionIndex + 1}</strong>
-        von <strong>${saved.questions.length}</strong><br>
-        ✅ ${saved.stats.correct} richtig
+        Question <strong>${saved.currentQuestionIndex + 1}</strong>
+        of <strong>${saved.questions.length}</strong><br>
+        ✅ ${saved.stats.correct} correct
     `;
 
     document.getElementById("resume-btn").onclick = () => {
@@ -167,8 +172,6 @@ function showQuestion(index) {
     updateProgressUI();
     document.getElementById("minimap-container").classList.remove("d-none");
 
-
-
     document.getElementById("question-text").textContent = q.question_text || "";
     document.getElementById("answer-feedback").textContent = "";
     document.getElementById("answer-text").textContent = "";
@@ -186,6 +189,7 @@ function showQuestion(index) {
     resetMapSelection();
     resetMapView();
 }
+
 
 function submitAnswer() {
     if (submitted) return;
@@ -208,7 +212,7 @@ function submitAnswer() {
     if (correct) {
         stats.correct++;
 
-        feedback.textContent = "✅ Richtig!";
+        feedback.textContent = "✅ Correct!";
         feedback.className = "text-success fw-bold";
 
         setTimeout(() => {
@@ -220,7 +224,7 @@ function submitAnswer() {
 
         // ➤ Alle korrekten Ländernamen übersetzen
         const correctNames = correctCountries
-            .map(code => countries[code]?.names?.de)
+            .map(code => countries[code]?.names?.en || countries[code]?.names?.de)
             .filter(Boolean)
             .join(", ");
 
@@ -235,7 +239,7 @@ function submitAnswer() {
         });
 
         feedback.textContent =
-            `❌ Falsch – richtig wäre: ${correctNames}`;
+            `❌ Wrong – correct would be: ${correctNames}`;
         document.getElementById("answer-text").textContent = q.answer_text;
         feedback.className = "text-danger fw-bold";
 
@@ -257,18 +261,15 @@ function nextQuestion() {
     currentQuestionIndex++;
     saveProgress();
 
-
     if (currentQuestionIndex >= questions.length) {
         showEndAnalysis();
         return;
     }
 
-
     showQuestion(currentQuestionIndex);
 }
 
 function showEndAnalysis() {
-    // remove style: overflow: hidden from body
     document.body.style.overflow = "auto";
 
     // Quiz-UI ausblenden
@@ -283,16 +284,14 @@ function showEndAnalysis() {
 
     const percent = Math.round((stats.correct / stats.total) * 100);
 
-    // ---------------- SUMMARY ----------------
     document.getElementById("analysis-summary").innerHTML = `
         <p class="fs-5">
-            <strong>${stats.correct}</strong> von
-            <strong>${stats.total}</strong> richtig
+            <strong>${stats.correct}</strong> of
+            <strong>${stats.total}</strong> correct
             (<strong>${percent}%</strong>)
         </p>
     `;
 
-    // ---------------- WRONG LIST ----------------
     const list = document.getElementById("analysis-wrong-list");
     list.innerHTML = "";
 
@@ -306,13 +305,13 @@ function showEndAnalysis() {
                 <h5>${w.question}</h5>
 
                 <p class="analysis-answer analysis-wrong">
-                    ❌ Deine Antwort: ${w.selectedName}
+                    ❌ Your answer: ${w.selectedName}
                 </p>
 
                 <p class="analysis-answer analysis-correct">
-                    ✅ Richtig: ${Array.isArray(w.correctCountry)
-                    ? w.correctCountry.map(code => countries[code]?.names?.de).join(", ")
-                    : countries[w.correctCountry]?.names?.de}
+                    ✅ Correct: ${Array.isArray(w.correctCountry)
+                ? w.correctCountry.map(code => countries[code]?.names?.en || countries[code]?.names?.de).join(", ")
+                : (countries[w.correctCountry]?.names?.en || countries[w.correctCountry]?.names?.de)}
                 </p>
         `;
 
@@ -337,7 +336,7 @@ function showEndAnalysis() {
         list.innerHTML = `
             <div class="col-12">
                 <p class="text-success fw-bold fs-4">
-                    🎉 Perfekt! Keine falschen Antworten.
+                    🎉 Perfect! No wrong answers.
                 </p>
             </div>
         `;
@@ -345,8 +344,6 @@ function showEndAnalysis() {
 }
 
 
-
-// ---------------- MAP ----------------
 function resetMapSelection() {
     if (selectedFeature) {
         map.data.overrideStyle(selectedFeature, {
@@ -356,6 +353,7 @@ function resetMapSelection() {
     }
     selectedFeature = null;
 }
+
 
 function resetMapView() {
     if (!map) return;
