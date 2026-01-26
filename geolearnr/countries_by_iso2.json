@@ -2085,6 +2085,15 @@
       "de": "Großbritannien (UK)"
     }
   },
+  "GB": {
+    "alpha3": "GBR",
+    "names": {
+      "en": "United Kingdom",
+      "es": "Reino Unido",
+      "fr": "Royaume-Uni",
+      "de": "Großbritannien (UK)"
+    }
+  },
   "US": {
     "alpha3": "USA",
     "names": {

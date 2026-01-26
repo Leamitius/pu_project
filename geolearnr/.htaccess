@@ -37,3 +37,13 @@ RewriteRule ^(.+)$ $1.html [L,QSA]
     Order allow,deny
     Deny from all
 </Files>
+
+
+<FilesMatch "\.js$">
+    Header set Content-Type application/javascript
+    Header set X-Content-Type-Options nosniff
+</FilesMatch>
+
+
+RewriteCond %{HTTP_REFERER} !^https://geolearnr\.ch/ [NC]
+RewriteRule .*\.js$ - [F]

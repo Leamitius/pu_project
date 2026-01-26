@@ -20,18 +20,33 @@ let selectedCountryCode = null;
 
 let countries = {};
 
-// expected: ["learnsets", "a"]
-if (pathParts.length < 2 || pathParts[0] !== "learnsets") {
-    console.error("Invalid learnset URL");
-    document.body.innerHTML = "Learnset not found";
-    throw new Error("Invalid URL");
-}
 
 let stats = {
     total: 0,
     correct: 0,
     wrong: [],
 };
+
+
+function highlightFeature(feature, color) {
+    map.data.overrideStyle(feature, {
+        fillColor: color,
+        fillOpacity: 0.6,
+        strokeColor: color,
+        strokeWeight: 2
+    });
+}
+
+function getFeatureByIso(code) {
+    let found = null;
+    map.data.forEach(f => {
+        if (f.getProperty("iso_a2_eh") === code) {
+            found = f;
+        }
+    });
+    return found;
+}
+
 
 
 // submit answer on space
@@ -47,6 +62,10 @@ document.addEventListener("keydown", function (e) {
 });
 
 document.getElementById("submit-btn").addEventListener("click", function () {
+    submitAnswer()
+});
+
+document.getElementById("submit-btn-desktop").addEventListener("click", function () {
     submitAnswer()
 });
 
@@ -76,8 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(res => res.json())
         .then(data => {
             countries = data;
-            console.log(countries["DE"].names.en); // Germany
-            console.log(countries["DE"].names.de); // Deutschland
         })
         .catch(err => console.warn("Could not load countries JSON:", err));
 
@@ -138,7 +155,7 @@ function showResumeDialog(saved, freshQuestions) {
 
     document.getElementById("quiz-page").classList.add("d-none");
     document.getElementById("analysis-page")?.classList.add("d-none");
-    document.getElementById("minimap-container").classList.add("d-none");
+    document.getElementById("minimap-wrapper").classList.add("d-none");
 
     const page = document.getElementById("resume-page");
     page.classList.remove("d-none");
@@ -170,13 +187,15 @@ function showQuestion(index) {
     if (!q) return;
 
     updateProgressUI();
-    document.getElementById("minimap-container").classList.remove("d-none");
+    document.getElementById("minimap-wrapper").classList.remove("d-none");
 
     document.getElementById("question-text").textContent = q.question_text || "";
     document.getElementById("answer-feedback").textContent = "";
     document.getElementById("answer-text").textContent = "";
     document.getElementById("submit-btn").classList.remove("d-none");
+    document.getElementById("submit-btn-desktop").classList.remove("d-none");
     document.getElementById("next-btn").classList.add("d-none");
+    document.getElementById("next-btn-desktop").classList.add("d-none");
 
     const img = document.getElementById("question-image");
     if (q.image) {
@@ -198,10 +217,13 @@ function submitAnswer() {
     const q = questions[currentQuestionIndex];
     const selectedCode = selectedFeature.getProperty("iso_a2_eh");
 
-    // ➤ Mehrere richtige Länder erlauben
+    // ➤ Mehrere richtige Länder erlauben (normalize 'UK' -> 'GB')
     const correctCountries = q.answer_country
         .split(",")
-        .map(c => c.trim());
+        .map(c => {
+            const code = c.trim();
+            return code === "UK" ? "GB" : code;
+        });
 
     const correct = correctCountries.includes(selectedCode);
 
@@ -215,12 +237,21 @@ function submitAnswer() {
         feedback.textContent = "✅ Correct!";
         feedback.className = "text-success fw-bold";
 
+        highlightFeature(selectedFeature, "#198754");
+
         setTimeout(() => {
             nextQuestion();
         }, 1000);
 
     } else {
         wronganswer = true;
+
+        highlightFeature(selectedFeature, "#dc3545");
+
+        correctCountries.forEach(code => {
+            const f = getFeatureByIso(code);
+            if (f) highlightFeature(f, "#198754");
+        });
 
         // ➤ Alle korrekten Ländernamen übersetzen
         const correctNames = correctCountries
@@ -244,7 +275,9 @@ function submitAnswer() {
         feedback.className = "text-danger fw-bold";
 
         document.getElementById("submit-btn").classList.add("d-none");
+        document.getElementById("submit-btn-desktop").classList.add("d-none");
         document.getElementById("next-btn").classList.remove("d-none");
+        document.getElementById("next-btn-desktop").classList.remove("d-none");
     }
 
     submitted = true;
@@ -267,13 +300,14 @@ function nextQuestion() {
     }
 
     showQuestion(currentQuestionIndex);
+    updateSubmitState()
 }
 
 function showEndAnalysis() {
     document.body.style.overflow = "auto";
 
     // Quiz-UI ausblenden
-    document.getElementById("minimap-container").classList.add("d-none");
+    document.getElementById("minimap-wrapper").classList.add("d-none");
     document.getElementById("quiz-page").classList.add("d-none");
 
     clearProgress();
@@ -310,7 +344,7 @@ function showEndAnalysis() {
 
                 <p class="analysis-answer analysis-correct">
                     ✅ Correct: ${Array.isArray(w.correctCountry)
-                ? w.correctCountry.map(code => countries[code]?.names?.en || countries[code]?.names?.de).join(", ")
+                ? w.correctCountry.map(code => countries[code]?.names?.en || countries[code]?.names?.en).join(", ")
                 : (countries[w.correctCountry]?.names?.en || countries[w.correctCountry]?.names?.de)}
                 </p>
         `;
@@ -343,9 +377,23 @@ function showEndAnalysis() {
     }
 }
 
+function updateSubmitState() {
+    const enabled = !!selectedFeature;
+    document.querySelectorAll("#submit-btn, #submit-btn-desktop").forEach(btn => {
+        btn.disabled = !enabled;
+    });
+}
+
+function toggleMap() {
+    const mapBox = document.getElementById("minimap-wrapper");
+    mapBox.classList.toggle("d-none");
+}
+
 
 function resetMapSelection() {
     if (selectedFeature) {
+        map.data.revertStyle();
+
         map.data.overrideStyle(selectedFeature, {
             fillOpacity: 0,
             strokeWeight: 0
@@ -371,7 +419,8 @@ async function initMap() {
         center: DEFAULT_MAP_CENTER,
         zoom: DEFAULT_MAP_ZOOM,
         mapId: MAP_ID,
-        disableDefaultUI: true
+        disableDefaultUI: true,
+        gestureHandling: "greedy"
     });
 
     map.data.loadGeoJson("/custom.geo.json");
@@ -382,6 +431,7 @@ async function initMap() {
     });
 
     map.data.addListener("click", (e) => {
+        if (wronganswer) return;
         if (selectedFeature) {
             map.data.overrideStyle(selectedFeature, {
                 fillOpacity: 0,
@@ -390,6 +440,8 @@ async function initMap() {
         }
 
         selectedFeature = e.feature;
+        console.log(selectedFeature)
+        updateSubmitState();
         map.data.overrideStyle(selectedFeature, {
             fillOpacity: 0.5,
             strokeWeight: 2

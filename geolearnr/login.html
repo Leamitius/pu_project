@@ -182,7 +182,7 @@
                     if (data.status === "success") {
                         // 👉 nach Login direkt ins dashboard
                         // window.location.href = "https://geolearnr.ch";
-                        history.back();
+                        window.location.replace(document.referrer || "/");
 
                     } else {
                         document.getElementById("login-error").classList.remove("d-none");

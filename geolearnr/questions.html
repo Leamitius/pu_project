@@ -9,9 +9,10 @@
 
 	<!-- Bootstrap CSS -->
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
 </head>
 <style>
-	#minimap-container {
+	/* #minimap-container {
 		position: fixed;
 		bottom: 24px;
 		right: 24px;
@@ -20,20 +21,71 @@
 		border-radius: 16px;
 		overflow: hidden;
 		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-		transition: width 0.15s ease 0.5s, height 0.15s ease 0.5s;
 		z-index: 1000;
+	} */
+	/* DESKTOP MAP */
+	#minimap-container {
+		width: 100%;
+		height: 200px;
+		border-radius: 16px;
+		overflow: hidden;
+		transition: width 0.15s ease 0.5s, height 0.15s ease 0.5s;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 	}
 
-	#minimap-container:hover {
+	#desktop-submit-container {
+		margin-top: 8px;
+	}
+
+
+	/* DESKTOP BUTTON CONTAINER */
+	/* #desktop-submit-container {
+		position: fixed;
+		bottom: 24px;
+		right: 24px;
+		width: 260px;
+		z-index: 1000;
+	} */
+
+	/* Optional: Button etwas "GeoGuessriger" */
+	#desktop-submit-container button {
+		font-weight: 600;
+	}
+
+	/* WRAPPER */
+	#minimap-wrapper {
+		position: fixed;
+		bottom: 24px;
+		right: 24px;
+		width: 260px;
+		z-index: 1000;
+		transition: width 0.15s ease 0.5s, height 0.15s ease 0.5s;
+	}
+
+	/* Hover vergrößert ALLES */
+	#minimap-wrapper:hover {
 		width: 520px;
-		height: 400px;
 		transition-delay: 0s;
 	}
 
-	#minimap {
+
+	#minimap-container:hover {
+		width: 520px;
+		height: 370px;
+		transition-delay: 0s;
+	}
+
+	/* #minimap {
 		width: 100%;
 		height: 100%;
+	} */
+
+	#minimap {
+		width: 100%;
+		height: 100%
 	}
+
+
 
 	.question-box {
 		width: 100%;
@@ -64,6 +116,87 @@
 
 	.analysis-correct {
 		color: #198754;
+	}
+
+	#quiz-page {
+		min-height: calc(100vh - 56px);
+		justify-content: center;
+	}
+
+	@media (max-width: 768px) {
+
+		body {
+			overflow: hidden;
+			height: 100vh;
+		}
+
+		.navbar {
+			position: sticky;
+			/* or sticky/fixed if needed */
+			z-index: 1100;
+			/* higher than minimap-wrapper */
+		}
+
+		#quiz-page {
+			display: flex;
+			flex-direction: column;
+			align-items: stretch;
+			justify-content: space-between;
+			height: calc(100vh - 56px);
+			/* navbar height */
+			padding-top: 24px;
+		}
+
+		.question-box {
+			flex-shrink: 0;
+			/* natural height */
+			margin-bottom: 8px;
+		}
+
+		#minimap-wrapper {
+			flex-grow: 1;
+			position: inherit;
+			/* fills remaining space */
+			display: flex;
+			flex-direction: column;
+			width: 100%;
+			max-height: 400px;
+			/* full width */
+			margin-top: 24px;
+			border-radius: 0;
+			box-shadow: none;
+		}
+
+		#minimap-container {
+			flex-grow: 1;
+			/* map fills wrapper vertically */
+			width: 100%;
+			height: 100%;
+			border-radius: 0;
+			box-shadow: none;
+		}
+
+		#desktop-submit-container {
+			margin-top: 8px;
+		}
+
+	}
+
+
+	@media (max-width: 768px) {
+		#desktop-submit-container {
+			display: none;
+		}
+	}
+
+	@media (min-width: 769px) {
+		#submit-btn {
+			display: none;
+		}
+
+		#next-btn {
+			display: none;
+		}
 	}
 </style>
 
@@ -143,45 +276,66 @@
 		</button>
 	</div>
 
-	<div class="container d-flex justify-content-center align-items-center" style="min-height: calc(100vh - 56px);"
-		id="quiz-page">
-		<div class="card shadow-lg question-box">
-			<div class="card-body text-center">
-				<div id="progress-indicator" class="mb-2 fw-bold"></div>
+	<div class="d-flex align-items-center" id="quiz-page">
+		<div class="container">
+			<div class="card shadow-lg question-box" style="margin: auto;">
+				<div class="card-body text-center">
+					<div id="progress-indicator" class="mb-2 fw-bold"></div>
 
 
-				<h3 id="question-text" class="mb-3">Loading question...</h3>
+					<h3 id="question-text" class="mb-3">Loading question...</h3>
 
-				<img id="question-image" class="img-fluid rounded d-none mb-3" style="max-height: 250px;">
+					<img id="question-image" class="img-fluid rounded d-none mb-3" style="max-height: 250px;">
 
-				<!-- FEEDBACK -->
-				<div id="answer-feedback" class="fw-bold mb-3"></div>
+					<!-- FEEDBACK -->
+					<div id="answer-feedback" class="fw-bold mb-3"></div>
 
-				<div id="answer-text" class="fw-bold mb-3"></div>
+					<div id="answer-text" class="fw-bold mb-3"></div>
 
-				<!-- BUTTONS -->
-				<div class="d-flex justify-content-center gap-2">
-					<button id="submit-btn" class="btn btn-primary" onclick="submitAnswer()">
-						Submit answer
-					</button>
+					<!-- BUTTONS -->
+					<div class="d-flex justify-content-center gap-2">
+						<button id="submit-btn" class="btn btn-primary" onclick="submitAnswer()">
+							Submit answer
+						</button>
 
-					<button id="next-btn" class="btn btn-secondary d-none" onclick="nextQuestion()">
-						Next
-					</button>
+						<button id="next-btn" class="btn btn-secondary d-none" onclick="nextQuestion()">
+							Next
+						</button>
+					</div>
+
+					<!-- END SCREEN -->
+					<div id="end-screen" class="d-none">
+						<h3 class="mt-3">🎉 Done!</h3>
+						<p>You've answered all questions.</p>
+						<a href="https://geolearnr.ch/learnsets" class="btn btn-success">Back to Learnsets</a>
+					</div>
+
 				</div>
-
-				<!-- END SCREEN -->
-				<div id="end-screen" class="d-none">
-					<h3 class="mt-3">🎉 Done!</h3>
-					<p>You've answered all questions.</p>
-					<a href="https://geolearnr.ch/learnsets" class="btn btn-success">Back to Learnsets</a>
-				</div>
-
 			</div>
 		</div>
+
+		<div id="minimap-wrapper">
+
+			<div id="minimap-container">
+				<div id="minimap"></div>
+			</div>
+
+			<div id="desktop-submit-container">
+				<button id="submit-btn-desktop" class="btn btn-primary w-100" disabled="true" onclick="submitAnswer()">
+					Submit answer
+				</button>
+				<button id="next-btn-desktop" class="btn btn-secondary w-100 d-none" onclick="nextQuestion()">
+					Next
+				</button>
+			</div>
+
+		</div>
+
 	</div>
 	<div id="analysis-page" class="d-none container my-5">
 		<h2 class="mb-4">📊 Analysis</h2>
+
+		<a href="https://geolearnr.ch/learnsets" class="btn btn-success mb-3">← Back to Learnsets</a>
 
 		<div id="analysis-summary" class="mb-5"></div>
 
@@ -189,15 +343,23 @@
 	</div>
 
 
-	<div id="minimap-container">
-		<div id="minimap"></div>
-	</div>
 
-	<script src="https://geolearnr.ch/js/questions.js"></script>
-	<script async
-		src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&callback=initMap&v=weekly">
-		</script>
-	<script src="https://geolearnr.ch/js/navbar.js"></script>
+
+
+	<!-- <button class="btn btn-outline-primary mb-3 d-md-none" onclick="toggleMap()" style="position: fixed;
+		bottom: 24px;
+		right: 24px;">
+		🗺️ Karte anzeigen
+	</button> -->
+
+
+<script src="https://geolearnr.ch/js/questions.js"></script>
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBr5qBdwGAkn-sJRlvgewmETYU8obe4gtY&callback=initMap&v=weekly">
+</script>
+<script src="https://geolearnr.ch/js/navbar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
+
 </html>
