@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCKW — Das unsichtbare Gift</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --void: #03050a;
+    --deep: #060d1a;
+    --mid: #0a1628;
+    --blue: #0d3b6e;
+    --ice: #4fc3f7;
+    --uv: #b24bf3;
+    --danger: #ff3d5a;
+    --ozone: #00e5c3;
+    --text: #c8ddf5;
+    --pale: #7a9cc0;
+    --white: #eef5ff;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* ─── CANVAS BACKGROUND ─── */
+  #sky-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ─── NAV ─── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 3rem;
+    background: linear-gradient(to bottom, rgba(3,5,10,0.95), transparent);
+    border-bottom: 1px solid rgba(79,195,247,0.08);
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.3em;
+    color: var(--ice);
+    text-shadow: 0 0 20px rgba(79,195,247,0.5);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--pale);
+    text-decoration: none;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: color 0.3s;
+    position: relative;
+  }
+
+  .nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0; right: 0;
+    height: 1px;
+    background: var(--ice);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+
+  .nav-links a:hover { color: var(--ice); }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* ─── HERO ─── */
+  #hero {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 8rem;
+    overflow: hidden;
+  }
+
+  .hero-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--ozone);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    height: 50px;
+    animation: fadeUp 1s 0.3s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(6rem, 14vw, 14rem);
+    line-height: 0.88;
+    color: var(--white);
+    letter-spacing: 0.04em;
+    opacity: 0;
+    animation: fadeUp 1s 0.5s forwards;
+  }
+
+  .hero-title span {
+    display: block;
+    background: linear-gradient(135deg, var(--ice), var(--uv));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    margin-top: 2rem;
+    max-width: 480px;
+    font-size: 0.85rem;
+    line-height: 1.9;
+    color: var(--pale);
+    opacity: 0;
+    animation: fadeUp 1s 0.7s forwards;
+  }
+
+  .hero-molecule {
+    position: absolute;
+    right: 15rem;
+    /* top: 50%; */
+    transform: translateY(-50%);
+    opacity: 0;
+    animation: fadeUp 1.2s 1s forwards;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    animation: fadeIn 1s 1.5s forwards;
+    color: var(--pale);
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  .scroll-arrow {
+    width: 1px;
+    height: 50px;
+    background: linear-gradient(to bottom, var(--ice), transparent);
+    animation: pulse-down 2s infinite;
+  }
+
+  /* ─── SECTIONS ─── */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 8rem 0;
+  }
+
+  .section-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 4rem;
+  }
+
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ozone);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .section-label::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--ozone);
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.1;
+    margin-bottom: 3rem;
+  }
+
+  /* ─── STECKBRIEF ─── */
+  #steckbrief { background: transparent; }
+
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(79,195,247,0.08);
+    border: 1px solid rgba(79,195,247,0.08);
+  }
+
+  .spec-item {
+    background: rgba(6,13,26,0.9);
+    padding: 2rem;
+    transition: background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .spec-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(79,195,247,0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .spec-item:hover { background: rgba(10,22,40,0.95); }
+  .spec-item:hover::before { opacity: 1; }
+
+  .spec-key {
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--pale);
+    margin-bottom: 0.75rem;
+  }
+
+  .spec-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--white);
+  }
+
+  .spec-val.highlight { color: var(--ice); }
+  .spec-val.danger { color: var(--danger); }
+
+  /* ─── MOLECULE VISUAL ─── */
+  .molecule-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 4rem 0;
+  }
+
+  /* ─── QUELLEN / TIMELINE ─── */
+  .sources-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .source-card {
+    background: rgba(6,13,26,0.8);
+    border: 1px solid rgba(79,195,247,0.1);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .source-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--ice);
+    transform: scaleY(0);
+    transition: transform 0.4s;
+    transform-origin: top;
+  }
+
+  .source-card:hover {
+    border-color: rgba(79,195,247,0.35);
+    transform: translateX(4px);
+  }
+
+  .source-card:hover::after { transform: scaleY(1); }
+
+  .source-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .source-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--white);
+    margin-bottom: 0.5rem;
+  }
+
+  .source-desc {
+    font-size: 0.75rem;
+    line-height: 1.8;
+    color: var(--pale);
+  }
+
+  /* ─── OZON DESTRUCTION INTERACTIVE ─── */
+  #ozon-section {
+    background: linear-gradient(180deg, transparent, rgba(178,75,243,0.04), transparent);
+  }
+
+  .chain-reaction {
+    position: relative;
+    margin: 4rem 0;
+  }
+
+  .step-row {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+
+  .step-row.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .step-num {
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(178,75,243,0.4);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    color: var(--uv);
+    flex-shrink: 0;
+    background: rgba(178,75,243,0.08);
+  }
+
+  .step-content {
+    background: rgba(6,13,26,0.7);
+    border: 1px solid rgba(178,75,243,0.12);
+    padding: 1.2rem 1.5rem;
+    flex: 1;
+  }
+
+  .step-content strong {
+    display: block;
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .step-content p {
+    font-size: 0.75rem;
+    color: var(--pale);
+    line-height: 1.7;
+  }
+
+  .step-arrow {
+    margin-left: 1.5rem;
+    color: var(--uv);
+    font-size: 1.5rem;
+    opacity: 0.4;
+  }
+
+  /* ─── CONSEQUENCES ─── */
+  .consequence-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+
+  .con-item {
+    border-top: 2px solid var(--danger);
+    padding-top: 1.5rem;
+    transition: border-color 0.3s;
+  }
+
+  .con-item:hover { border-color: var(--uv); }
+
+  .con-emoji { font-size: 2rem; margin-bottom: 0.75rem; }
+
+  .con-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    color: var(--white);
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .con-text {
+    font-size: 0.72rem;
+    line-height: 1.8;
+    color: var(--pale);
+  }
+
+  /* ─── LEBENSDAUER ─── */
+  #lebensdauer {
+    background: linear-gradient(180deg, transparent, rgba(255,61,90,0.03), transparent);
+  }
+
+  .timeline-bar {
+    margin: 3rem 0;
+    position: relative;
+  }
+
+  .tbar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--pale);
+    margin-bottom: 0.75rem;
+  }
+
+  .tbar-track {
+    height: 8px;
+    background: rgba(79,195,247,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .tbar-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--ice), var(--uv), var(--danger));
+    width: 0;
+    transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .tbar-fill.animate { width: var(--target-width); }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+    margin-top: 4rem;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 5rem;
+    background: linear-gradient(135deg, var(--ice), var(--uv));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--pale);
+    margin-top: 0.5rem;
+  }
+
+  /* ─── MONTREAL ─── */
+  #montreal {
+    background: linear-gradient(180deg, transparent, rgba(0,229,195,0.04), transparent);
+  }
+
+  .protocol-banner {
+    border: 1px solid rgba(0,229,195,0.2);
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+    margin: 3rem 0;
+    background: rgba(6,13,26,0.6);
+  }
+
+  .protocol-banner::before {
+    content: 'MONTRÉAL PROTOCOL';
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 10rem;
+    color: rgba(0,229,195,0.03);
+    white-space: nowrap;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    letter-spacing: 0.1em;
+  }
+
+  .protocol-year {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 7rem;
+    color: var(--ozone);
+    line-height: 1;
+    opacity: 0.8;
+  }
+
+  .protocol-subtitle {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--white);
+    margin-bottom: 1.5rem;
+  }
+
+  .protocol-text {
+    font-size: 0.8rem;
+    line-height: 1.9;
+    color: var(--pale);
+    max-width: 600px;
+  }
+
+  .goals-row {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .goal-chip {
+    background: rgba(0,229,195,0.08);
+    border: 1px solid rgba(0,229,195,0.2);
+    padding: 0.6rem 1.2rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--ozone);
+    text-transform: uppercase;
+    transition: background 0.3s;
+  }
+
+  .goal-chip:hover { background: rgba(0,229,195,0.15); }
+
+  /* ─── OZONE RECOVERY INDICATOR ─── */
+  .recovery-indicator {
+    margin-top: 3rem;
+    padding: 2rem;
+    border: 1px solid rgba(0,229,195,0.15);
+    background: rgba(0,229,195,0.04);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .recovery-ring {
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }
+
+  .recovery-text strong {
+    display: block;
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    color: var(--ozone);
+    margin-bottom: 0.5rem;
+  }
+
+  .recovery-text p {
+    font-size: 0.75rem;
+    color: var(--pale);
+    line-height: 1.8;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid rgba(79,195,247,0.08);
+    padding: 3rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.65rem;
+    color: var(--pale);
+    letter-spacing: 0.1em;
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(79,195,247,0.15), transparent);
+    margin: 0;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes pulse-down {
+    0%, 100% { transform: scaleY(1); opacity: 1; }
+    50% { transform: scaleY(0.6); opacity: 0.4; }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes orbit {
+    from { transform: rotate(0deg) translateX(60px) rotate(0deg); }
+    to { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
+  }
+
+  @keyframes orbit2 {
+    from { transform: rotate(120deg) translateX(80px) rotate(-120deg); }
+    to { transform: rotate(480deg) translateX(80px) rotate(-480deg); }
+  }
+
+  @keyframes orbit3 {
+    from { transform: rotate(240deg) translateX(55px) rotate(-240deg); }
+    to { transform: rotate(600deg) translateX(55px) rotate(-600deg); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { filter: drop-shadow(0 0 10px rgba(79,195,247,0.5)); }
+    50% { filter: drop-shadow(0 0 25px rgba(79,195,247,0.9)); }
+  }
+
+  /* Reveal on scroll */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s, transform 0.8s;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="sky-canvas"></canvas>
+
+<nav>
+  <div class="nav-logo">FCKW</div>
+  <ul class="nav-links">
+    <li><a href="#steckbrief">Steckbrief</a></li>
+    <li><a href="#quellen">Quellen</a></li>
+    <li><a href="#ozon-section">Ozon</a></li>
+    <li><a href="#lebensdauer">Lebensdauer</a></li>
+    <li><a href="#montreal">Montréal</a></li>
+  </ul>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section id="hero">
+  <div class="hero-tag"></div>
+  <h1 class="hero-title">
+    FC<span>KW</span>
+  </h1>
+  <p class="hero-sub">
+    Fluorchlorkohlenwasserstoffe — farblos, geruchlos, unsichtbar.<br>
+    Und dennoch eines der verheerendsten Umweltprobleme des 20. Jahrhunderts.
+  </p>
+
+  <!-- SVG Molecule -->
+  <div class="hero-molecule" style="animation: float 6s ease-in-out infinite, fadeIn 1.5s 1s both;">
+    <svg width="500" height="500" viewBox="-80 -80 440 440">
+      <!-- Glow filters -->
+      <defs>
+        <filter id="glow-c">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-f">
+          <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow-cl">
+          <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Bonds -->
+      <line x1="140" y1="140" x2="140" y2="60" stroke="rgba(79,195,247,0.3)" stroke-width="1.5"/>
+      <line x1="140" y1="140" x2="210" y2="190" stroke="rgba(79,195,247,0.3)" stroke-width="1.5"/>
+      <line x1="140" y1="140" x2="70" y2="190" stroke="rgba(79,195,247,0.3)" stroke-width="1.5"/>
+      <line x1="140" y1="140" x2="195" y2="80" stroke="rgba(79,195,247,0.3)" stroke-width="1.5"/>
+
+      <!-- Carbon center -->
+      <circle cx="140" cy="140" r="22" fill="rgba(10,22,40,0.9)" stroke="rgba(79,195,247,0.6)" stroke-width="1.5" filter="url(#glow-c)"/>
+      <text x="140" y="146" text-anchor="middle" fill="#4fc3f7" font-family="Bebas Neue" font-size="18">C</text>
+
+      <!-- Fluorine atoms -->
+      <g style="animation: orbit 8s linear infinite; transform-origin: 140px 140px;">
+        <circle cx="140" cy="80" r="18" fill="rgba(10,22,40,0.9)" stroke="rgba(0,229,195,0.7)" stroke-width="1.5" filter="url(#glow-f)"/>
+        <text x="140" y="86" text-anchor="middle" fill="#00e5c3" font-family="Bebas Neue" font-size="16">F</text>
+      </g>
+
+      <g style="animation: orbit2 10s linear infinite; transform-origin: 140px 140px;">
+        <circle cx="210" cy="190" r="18" fill="rgba(10,22,40,0.9)" stroke="rgba(0,229,195,0.7)" stroke-width="1.5" filter="url(#glow-f)"/>
+        <text x="210" y="196" text-anchor="middle" fill="#00e5c3" font-family="Bebas Neue" font-size="16">F</text>
+      </g>
+
+      <!-- Chlorine atoms -->
+      <g style="animation: orbit3 12s linear infinite reverse; transform-origin: 140px 140px;">
+        <circle cx="70" cy="190" r="22" fill="rgba(10,22,40,0.9)" stroke="rgba(178,75,243,0.7)" stroke-width="1.5" filter="url(#glow-cl)"/>
+        <text x="70" y="196" text-anchor="middle" fill="#b24bf3" font-family="Bebas Neue" font-size="14">Cl</text>
+      </g>
+
+      <g style="animation: orbit 14s linear infinite reverse; transform-origin: 140px 140px;">
+        <circle cx="195" cy="80" r="22" fill="rgba(10,22,40,0.9)" stroke="rgba(178,75,243,0.7)" stroke-width="1.5" filter="url(#glow-cl)"/>
+        <text x="195" y="86" text-anchor="middle" fill="#b24bf3" font-family="Bebas Neue" font-size="14">Cl</text>
+      </g>
+
+      <!-- Outer ring -->
+      <circle cx="140" cy="140" r="110" fill="none" stroke="rgba(79,195,247,0.05)" stroke-width="1" stroke-dasharray="4 8"/>
+    </svg>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── STECKBRIEF ─── -->
+<section id="steckbrief">
+  <div class="section-inner">
+    <div class="section-label">01 — Steckbrief</div>
+    <h2 class="section-title reveal">Das Gas im Profil</h2>
+
+    <div class="spec-grid reveal">
+      <div class="spec-item">
+        <div class="spec-key">Zusammensetzung</div>
+        <div class="spec-val highlight">C · F · Cl</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-key">Aussehen</div>
+        <div class="spec-val">Farblos</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-key">Geruch</div>
+        <div class="spec-val">Geruchlos</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-key">Sichtbarkeit</div>
+        <div class="spec-val">Nicht sichtbar</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-key">Entzündbarkeit</div>
+        <div class="spec-val">Nicht brennbar</div>
+      </div>
+      <div class="spec-item">
+        <div class="spec-key">Besonderheit</div>
+        <div class="spec-val danger">Extrem stabil</div>
+      </div>
+    </div>
+
+    <!-- Molecule SVG inline info -->
+    <div class="molecule-wrap reveal">
+      <div style="text-align:center; max-width:600px;">
+        <p style="font-size:0.75rem; color:var(--pale); line-height:2; margin-top:1rem;">
+          <span style="color:var(--ice);">■ Kohlenstoff (C)</span> bildet das Zentrum des Moleküls.
+          <span style="color:var(--ozone);">■ Fluor (F)</span> und 
+          <span style="color:var(--uv);">■ Chlor (Cl)</span> sind die entscheidenden Atome —
+          besonders Chlor ist für die Ozonzerstörung verantwortlich.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── QUELLEN ─── -->
+<section id="quellen">
+  <div class="section-inner">
+    <div class="section-label">02 — Eintragsquellen</div>
+    <h2 class="section-title reveal">Wie gelangt FCKW in die Atmosphäre?</h2>
+
+    <div class="sources-grid">
+      <div class="source-card reveal">
+        <div class="source-icon">❄️</div>
+        <div class="source-title">Kühlschränke & Klimaanlagen</div>
+        <div class="source-desc">FCKW wurden jahrzehntelang als Kältemittel eingesetzt. Bei Leckagen oder unsachgemässer Entsorgung entwich das Gas direkt in die Luft.</div>
+      </div>
+      <div class="source-card reveal">
+        <div class="source-icon">🔬</div>
+        <div class="source-title">Spraydosen (Treibgas)</div>
+        <div class="source-desc">Als Treibmittel in Haarsprays, Deodorants und anderen Aerosolen wurden FCKW massenhaft freigesetzt — bei jedem Sprühstoss direkt in die Atmosphäre.</div>
+      </div>
+      <div class="source-card reveal">
+        <div class="source-icon">🏭</div>
+        <div class="source-title">Schaumstoffherstellung</div>
+        <div class="source-desc">Bei der Produktion von Isolierschäumen und Verpackungsmaterialien wurden FCKW als Blähmittel verwendet und dabei freigesetzt.</div>
+      </div>
+      <div class="source-card reveal">
+        <div class="source-icon">⚗️</div>
+        <div class="source-title">Reinigungs- & Lösungsmittel</div>
+        <div class="source-desc">In der Elektronikindustrie und in Reinigungsanlagen dienten FCKW als effektive Lösungsmittel — mit direktem Emissionspfad in die Atmosphäre.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:3rem; padding:2rem; border:1px solid rgba(79,195,247,0.1); background:rgba(6,13,26,0.6);" class="reveal">
+      <p style="font-size:0.8rem; line-height:2; color:var(--pale);">
+        <span style="color:var(--ice); font-family:'Syne',sans-serif; font-weight:700;">Aufstieg in die Stratosphäre:</span>
+        Durch ihre aussergewöhnliche chemische Stabilität zerfallen FCKW in der unteren Atmosphäre nicht.
+        Stattdessen steigen sie langsam — über Jahre und Jahrzehnte — in die Stratosphäre auf,
+        wo sie erst durch intensive UV-Strahlung aufgespalten werden.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── OZON ─── -->
+<section id="ozon-section">
+  <div class="section-inner">
+    <div class="section-label">03 — Wirkung auf die Atmosphäre</div>
+    <h2 class="section-title reveal">Die Kettenreaktion</h2>
+
+    <div class="chain-reaction">
+      <div class="step-row">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>FCKW steigen in die Stratosphäre</strong>
+          <p>Durch ihre Stabilität überleben sie den langen Aufstieg durch die Troposphäre unbeschadet und gelangen in Höhen von 15–50 km.</p>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>UV-Strahlung spaltet das Molekül</strong>
+          <p>Hochenergetische UV-C-Strahlung bricht die Kohlenstoff-Chlor-Bindung auf. Freie Chloratome (Cl•) werden freigesetzt.</p>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Chlor reagiert mit Ozon</strong>
+          <p>Cl• + O₃ → ClO• + O₂ — Das Chloratom entzieht dem Ozonmolekül ein Sauerstoffatom. Die Ozonschicht wird dünner.</p>
+        </div>
+      </div>
+      <div class="step-row">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Katalytische Kettenreaktion</strong>
+          <p>Das Chloratom wird regeneriert und kann erneut reagieren. Ein einziges Cl-Atom kann <span style="color:var(--danger);">bis zu 100'000 Ozonmoleküle</span> zerstören.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:4rem;">Folgen für die Biosphäre</div>
+    <div class="consequence-list">
+      <div class="con-item reveal">
+        <div class="con-emoji">☀️</div>
+        <div class="con-title">Mehr UV-Strahlung</div>
+        <div class="con-text">Ohne Ozonschutz erreicht verstärkte UV-B-Strahlung die Erdoberfläche — mit direkten Auswirkungen auf alle Lebewesen.</div>
+      </div>
+      <div class="con-item reveal">
+        <div class="con-emoji">🧬</div>
+        <div class="con-title">Erhöhtes Hautkrebsrisiko</div>
+        <div class="con-text">UV-B-Strahlung schädigt die DNA in Hautzellen. Das Risiko für Melanome und andere Hautkrebsarten steigt messbar an.</div>
+      </div>
+      <div class="con-item reveal">
+        <div class="con-emoji">👁️</div>
+        <div class="con-title">Augenschäden</div>
+        <div class="con-text">Katarakt und andere Augenkrankheiten nehmen zu. UV-Strahlung schädigt die Linse des Auges irreversibel.</div>
+      </div>
+      <div class="con-item reveal">
+        <div class="con-emoji">🌿</div>
+        <div class="con-title">Pflanzenschäden</div>
+        <div class="con-text">Photosynthese und Wachstum werden beeinträchtigt. Ernteausfälle und Vegetationsschäden sind die Folge.</div>
+      </div>
+      <div class="con-item reveal">
+        <div class="con-emoji">🦐</div>
+        <div class="con-title">Planktonsterben</div>
+        <div class="con-text">Phytoplankton — Basis mariner Nahrungsketten — reagiert extrem empfindlich auf UV-Strahlung. Massensterben bedrohen Meeresökosysteme.</div>
+      </div>
+      <div class="con-item reveal">
+        <div class="con-emoji">🌍</div>
+        <div class="con-title">Störung von Ökosystemen</div>
+        <div class="con-text">Domino-Effekte durch Nahrungskettenunterbrechungen destabilisieren ganze Ökosysteme weltweit.</div>
+      </div>
+    </div>
+
+    <!-- Ozone Hole callout -->
+    <div style="margin-top:4rem; padding:3rem; background:rgba(255,61,90,0.04); border:1px solid rgba(255,61,90,0.2); position:relative; overflow:hidden;" class="reveal">
+      <div style="position:absolute; top:-1rem; right:2rem; font-family:'Bebas Neue',sans-serif; font-size:8rem; color:rgba(255,61,90,0.06); line-height:1;">1985</div>
+      <div style="font-size:0.65rem; letter-spacing:0.3em; color:var(--danger); text-transform:uppercase; margin-bottom:1rem;">Entdeckung ✕ Antarktis</div>
+      <div style="font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; color:var(--white); margin-bottom:1rem;">Das Ozonloch</div>
+      <p style="font-size:0.8rem; line-height:2; color:var(--pale); max-width:600px;">
+        In den 1980er-Jahren entdeckten Wissenschaftler über der Antarktis eine massive Ausdünnung der Ozonschicht.
+        Das sogenannte «Ozonloch» — eigentlich eine extrem dünne Zone — entsteht jedes Jahr im Südfrühling
+        und erreichte 2006 mit über 27 Millionen km² seinen grössten gemessenen Umfang.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── LEBENSDAUER ─── -->
+<section id="lebensdauer">
+  <div class="section-inner">
+    <div class="section-label">04 — Persistenz</div>
+    <h2 class="section-title reveal">Lebensdauer in der Atmosphäre</h2>
+
+    <div class="timeline-bar reveal">
+      <div class="tbar-label">
+        <span>0 Jahre</span>
+        <span>50 Jahre</span>
+        <span>100 Jahre</span>
+        <span>150+ Jahre</span>
+      </div>
+      <div class="tbar-track">
+        <div class="tbar-fill" id="bar1" style="--target-width: 66%;"></div>
+      </div>
+      <p style="font-size:0.7rem; color:var(--pale); margin-top:0.75rem; letter-spacing:0.1em;">CFC-11 · CFC-12 · CFC-113 — 45 bis 100+ Jahre</p>
+    </div>
+
+    <div class="stat-grid reveal">
+      <div>
+        <div class="stat-num">100+</div>
+        <div class="stat-label">Jahre Lebensdauer</div>
+      </div>
+      <div>
+        <div class="stat-num">1987</div>
+        <div class="stat-label">Verbot durch Montréal</div>
+      </div>
+      <div>
+        <div class="stat-num">2060</div>
+        <div class="stat-label">Erwartete Erholung</div>
+      </div>
+    </div>
+
+    <div style="margin-top:4rem; padding:2rem 3rem; border-left:3px solid var(--danger); background:rgba(255,61,90,0.04);" class="reveal">
+      <p style="font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; color:var(--white); margin-bottom:0.5rem;">Das Erbe unserer Grosseltern</p>
+      <p style="font-size:0.8rem; line-height:2; color:var(--pale);">
+        Auch heute — Jahrzehnte nach dem Verbot — wirken FCKW-Moleküle weiter in der Stratosphäre.
+        Das Gas, das in einem Kühlschrank der 1970er-Jahre steckte, könnte noch bis ins 22. Jahrhundert
+        aktiv Ozon zerstören. Umweltschutz verlangt Geduld über Generationen hinaus.
+      </p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── MONTRÉAL ─── -->
+<section id="montreal">
+  <div class="section-inner">
+    <div class="section-label">05 — Internationale Massnahmen</div>
+    <h2 class="section-title reveal">Das Montréal-Protokoll</h2>
+
+    <div class="protocol-banner reveal">
+      <div class="protocol-year">1987</div>
+      <div class="protocol-subtitle">Ein Meilenstein der Umweltpolitik</div>
+      <p class="protocol-text">
+        Das Montréal-Protokoll gilt als eines der erfolgreichsten internationalen Umweltabkommen aller Zeiten.
+        Ratifiziert von allen 197 UN-Mitgliedstaaten, regelt es den weltweiten Ausstieg aus der Produktion
+        und dem Einsatz ozonschädigender Substanzen.
+      </p>
+      <div class="goals-row">
+        <div class="goal-chip">Weltweites FCKW-Verbot</div>
+        <div class="goal-chip">Schutz der Ozonschicht</div>
+        <div class="goal-chip">Internationale Kooperation</div>
+        <div class="goal-chip">197 Unterzeichnerstaaten</div>
+      </div>
+    </div>
+
+    <div class="recovery-indicator reveal">
+      <svg class="recovery-ring" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(0,229,195,0.1)" stroke-width="8"/>
+        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--ozone)" stroke-width="8"
+          stroke-dasharray="251" stroke-dashoffset="88"
+          stroke-linecap="round"
+          transform="rotate(-90 50 50)"
+          style="animation: fadeIn 2s 0.5s both;"/>
+        <text x="50" y="46" text-anchor="middle" fill="var(--ozone)" font-family="Bebas Neue" font-size="18">65%</text>
+        <text x="50" y="60" text-anchor="middle" fill="var(--pale)" font-family="Space Mono" font-size="7">Erholung</text>
+      </svg>
+      <div class="recovery-text">
+        <strong>Die Ozonschicht erholt sich</strong>
+        <p>
+          Seit dem Montréal-Protokoll sind die Konzentrationen ozonschädigender Substanzen in der Stratosphäre
+          messbar gesunken. Wissenschaftler gehen davon aus, dass die Ozonschicht bis etwa 2060–2066
+          ihren vorindustriellen Zustand weitgehend wiedererlangt haben wird.
+          Ein seltenes Beispiel, wie internationale Politik und Wissenschaft zusammen ein globales Problem lösen.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div>Geographie NKSA · 3. Klasse GYM · huc</div>
+  <div style="color:var(--ice);">FCKW — Fluorchlorkohlenwasserstoffe</div>
+  <div>C · F · Cl</div>
+</footer>
+
+<script>
+// ─── STARFIELD / ATMOSPHERE CANVAS ───
+const canvas = document.getElementById('sky-canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H, particles = [], ozoneLayers = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < 120; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.2 + 0.2,
+      speed: Math.random() * 0.15 + 0.02,
+      opacity: Math.random() * 0.6 + 0.1,
+      color: Math.random() > 0.7 ? '#b24bf3' : Math.random() > 0.5 ? '#00e5c3' : '#4fc3f7'
+    });
+  }
+  // Atmospheric glow layers
+  ozoneLayers = [
+    { y: H * 0.3, color: 'rgba(79,195,247,0.03)', blur: 80, w: W * 1.2 },
+    { y: H * 0.5, color: 'rgba(0,229,195,0.02)', blur: 120, w: W * 0.8 },
+    { y: H * 0.7, color: 'rgba(178,75,243,0.025)', blur: 100, w: W * 1.0 },
+  ];
+}
+
+let t = 0;
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  t += 0.003;
+
+  // Atmospheric layers
+  ozoneLayers.forEach(layer => {
+    const grad = ctx.createRadialGradient(W/2, layer.y + Math.sin(t) * 20, 0, W/2, layer.y, layer.blur * 4);
+    grad.addColorStop(0, layer.color);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  });
+
+  // Particles (drifting slowly upward)
+  particles.forEach(p => {
+    p.y -= p.speed;
+    if (p.y < 0) { p.y = H; p.x = Math.random() * W; }
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color.replace(')', `, ${p.opacity})`).replace('rgb', 'rgba').replace('#', 'rgba(').replace('rgba(', 'rgba(');
+
+    // Simple hex to rgba
+    let hex = p.color;
+    let r2 = parseInt(hex.slice(1,3),16);
+    let g2 = parseInt(hex.slice(3,5),16);
+    let b2 = parseInt(hex.slice(5,7),16);
+    ctx.fillStyle = `rgba(${r2},${g2},${b2},${p.opacity})`;
+    ctx.fill();
+  });
+
+  requestAnimationFrame(draw);
+}
+
+resize();
+initParticles();
+draw();
+window.addEventListener('resize', () => { resize(); initParticles(); });
+
+// ─── SCROLL ANIMATIONS ───
+const reveals = document.querySelectorAll('.reveal');
+const stepRows = document.querySelectorAll('.step-row');
+const bars = document.querySelectorAll('.tbar-fill');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      // Animate bars
+      if (e.target.classList.contains('tbar-fill')) {
+        setTimeout(() => e.target.classList.add('animate'), 200);
+      }
+    }
+  });
+}, { threshold: 0.15 });
+
+reveals.forEach(el => observer.observe(el));
+bars.forEach(el => observer.observe(el));
+
+// Chain reaction steps with delay
+const stepObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const steps = e.target.querySelectorAll('.step-row');
+      steps.forEach((step, i) => {
+        setTimeout(() => step.classList.add('visible'), i * 200);
+      });
+      stepObserver.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+const chainReaction = document.querySelector('.chain-reaction');
+if (chainReaction) stepObserver.observe(chainReaction);
+
+// ─── SMOOTH NAV ACTIVE STATE ───
+const navLinks = document.querySelectorAll('.nav-links a');
+const sections = document.querySelectorAll('section[id]');
+
+const navObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(link => {
+        link.style.color = link.getAttribute('href') === '#' + e.target.id ? 'var(--ice)' : '';
+      });
+    }
+  });
+}, { threshold: 0.4 });
+
+sections.forEach(s => navObserver.observe(s));
+</script>
+</body>
+</html>
